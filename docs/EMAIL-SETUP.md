@@ -8,7 +8,9 @@
 Supabase Auth sends all transactional mail (confirm signup, magic link, password
 reset, invite) via **custom SMTP → Resend**. No email code in the app; it's all
 dashboard config. Sending domain: **`payroll.persadpay.com`** (a subdomain on the
-existing `persadpay.com`, DNS hosted at **GoDaddy**).
+existing `persadpay.com`). The domain is *registered* at GoDaddy, but its nameservers
+point to **Vercel** — so all DNS records (SPF, DKIM, DMARC) are managed in the **Vercel
+dashboard**, not GoDaddy.
 
 > Eventual cleanup: a dedicated `mail.overlapp.*`-style subdomain would be tidier than
 > reusing the PersadPay `payroll` subdomain, but it's cosmetic — deliverability is fine.
@@ -45,21 +47,24 @@ copy, a button, a plaintext fallback link, and a footer live in
 To install: Supabase → Authentication → Emails → **Templates** → pick the template →
 paste the HTML → Save. All use the `{{ .ConfirmationURL }}` variable.
 
-### Fix B — Add a DMARC record (GoDaddy)
+### Fix B — Add a DMARC record (Vercel DNS)
 SPF + DKIM passing is no longer enough; Gmail/Yahoo expect DMARC. Adding it is the most
-likely single fix for the spam placement.
+likely single fix for the spam placement. DNS is managed at **Vercel** (the domain's
+nameservers point there), so the record goes in the Vercel dashboard — the same place the
+Resend SPF/DKIM records already live.
 
-**First check if one already exists** (persadpay.com may already send mail):
-GoDaddy → **Domain Portfolio** → `persadpay.com` → **DNS** → look in the records list for a
-**TXT** record named `_dmarc`. If it exists, leave it — DMARC is in place. If not, add it:
+**First check if one already exists:** Vercel → **Domains** → `persadpay.com` → DNS records
+list → look for a **TXT** record named `_dmarc`. If it exists, leave it — DMARC is in place.
+If not, add it:
 
-1. GoDaddy → **My Products** → `persadpay.com` → **DNS** (or "Manage DNS").
-2. **Add New Record**:
+1. Vercel dashboard → top nav **Domains** (account level) → click **`persadpay.com`**.
+   *(Or: the Project that owns it → Settings → Domains → manage DNS.)*
+2. In the **DNS Records** section, use the **Add Record** form:
    - **Type:** `TXT`
-   - **Name:** `_dmarc`  *(GoDaddy auto-appends `.persadpay.com` — don't type the full thing)*
+   - **Name:** `_dmarc`  *(relative — Vercel appends `.persadpay.com`; don't type the full host)*
    - **Value:** `v=DMARC1; p=none; rua=mailto:akpersad@gmail.com`
-   - **TTL:** 1 hour (default)
-3. **Save.** Wait ~15–60 min to propagate.
+   - **TTL:** leave default
+3. **Add.** Propagation is usually quick (minutes).
 
 A record at `_dmarc.persadpay.com` covers the `payroll` subdomain too. `p=none` =
 monitor-only (safe); it satisfies the requirement without risking legit mail.
