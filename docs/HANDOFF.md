@@ -95,12 +95,15 @@ The previously-orphaned dep additions (`supabase` devDep, `@supabase/supabase-js
 ## NEXT STEPS (in order) — start here
 
 Steps 1–3 (confirm MCP, `profiles` migration, `@supabase/ssr` + proxy scaffold) are **DONE** — see
-"Phase 1 — application code" above. Continue from here:
+"Phase 1 — application code" above. Step 1 below (`groups` + `group_members`) is also **DONE**
+(migrations `20260603210859_create_groups_and_members` + `20260603211217_fix_membership_helper_grants`;
+enums, 15-cap trigger, owner-auto-membership trigger, `SECURITY DEFINER` membership helpers that
+break RLS recursion, full RLS, co-member profile-read policy; verified by a transactional smoke
+test; advisors clean). Continue from step 2:
 
-1. **`groups` + `group_members`** migration (`DATA-MODEL.md §3`): the two tables, the enums they
-   need (`member_role`, `member_status`, `join_control`), the **15-member-cap** `before insert`
-   trigger, and RLS (members read; admins/owner write). This also unlocks the **deferred
-   co-member profile-read policy** — add it to `profiles` here now that `group_members` exists.
+1. ~~**`groups` + `group_members`** migration (`DATA-MODEL.md §3`): two tables, the enums
+   (`member_role`, `member_status`, `join_control`), the **15-member-cap** trigger, and RLS
+   (members read; admins/owner write); unlocks the co-member profile-read policy.~~ **DONE.**
 2. **`group_invites` + `pending_invites`** (`§4`–`§5`): token-link invites, email-keyed pending
    invites, the invite-preview `security definer` RPC, and **extend `handle_new_user()`** to
    consume `pending_invites` on signup (the auto-join).
