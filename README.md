@@ -37,6 +37,9 @@ Supabase (Postgres + Auth + Realtime + RLS) · mobile-first PWA.
 
 ## Status
 
-Spec + data model finalized; Supabase project provisioned; Resend auth email wired. **Next: build
-Phase 1** (auth, groups, invites, manual blocks, group heatmap) — see `CLAUDE.md` for the live
-next step.
+Spec + data model finalized; Supabase project provisioned; Resend auth email wired. **Phase 1 in
+progress:** `profiles` migration (+ signup trigger + RLS) applied, `@supabase/ssr` clients and the
+`src/proxy.ts` session/route gate scaffolded. **Next:** `groups` + `group_members`, then invites,
+manual blocks, and the group heatmap — see `CLAUDE.md` / `docs/HANDOFF.md` for the live next step.
+
+Database migrations live in `supabase/migrations/` and are applied through the Supabase MCP server.

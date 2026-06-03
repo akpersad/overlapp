@@ -47,6 +47,14 @@ P1's core loop). **Infra done:** Supabase project provisioned (Data API on, auto
 automatic RLS on); `.env.local` populated with Supabase URL + anon key; Resend auth email wired
 via custom SMTP + branded templates ([`docs/EMAIL-SETUP.md`](docs/EMAIL-SETUP.md)).
 
-**Next: build Phase 1** — scaffold the Supabase client, then migrations per `DATA-MODEL.md §12`
-(`profiles` + signup trigger first), auth, groups, invites, manual blocks, group heatmap. No app
-code written yet — still the stock create-next-app starter (open: CLI vs. dashboard for migrations).
+**Phase 1 in progress.** Done: `profiles` migration (table + `handle_new_user()` signup trigger +
+RLS, advisor-clean) applied via Supabase MCP and version-controlled in `supabase/migrations/`;
+`@supabase/ssr` clients scaffolded (`src/lib/supabase/`: browser, server, generated `Database`
+types) + `src/proxy.ts` (Next 16 renamed `middleware`→`proxy`) for session refresh + route gating;
+starter leftovers cleaned (layout metadata, Geist font). `tsc` + `next build` both green.
+
+**Next:** `groups` + `group_members` (+ 15-member-cap trigger; also unlocks the deferred
+co-member profile-read policy) → `group_invites` & `pending_invites` (+ auto-join, extends
+`handle_new_user()`) → `manual_blocks` → busy-interval RPCs → heatmap, then the auth/group UI.
+Migrations go through the Supabase MCP **and** as files in `supabase/migrations/` (filenames must
+match the remote ledger version so `supabase db push` won't replay them).

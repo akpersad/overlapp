@@ -6,9 +6,10 @@
 ## TL;DR — where we are
 
 Product spec and data model are **finalized**. Backend infra (Supabase project, Resend auth
-email, Supabase MCP server) is **set up**. **No application code is written yet** — the repo is
-still the stock create-next-app starter. The immediate next task is **building Phase 1**, starting
-with the `profiles` migration and the `@supabase/ssr` client scaffold.
+email, Supabase MCP server) is **set up**. **Phase 1 is underway:** the `profiles` migration
+(table + signup trigger + RLS) is applied, and the `@supabase/ssr` client layer + `src/proxy.ts`
+session/route gate are scaffolded. The repo is no longer the stock starter. The immediate next
+task is the **`groups` + `group_members`** migration (continuing the `DATA-MODEL.md §12` order).
 
 ## Why this handoff exists
 
@@ -58,28 +59,60 @@ restart the user must: approve the `supabase` project server → run `/mcp` → 
 - **Supabase CLI** also installed (`npx supabase`, v2.104.0) as a devDependency — fallback/option
   for versioned migrations. Docker is available for `supabase start` (local dev) if wanted.
 
-## UNCOMMITTED state (important!)
+### Phase 1 — application code (first slice, committed)
 
-`package.json` / `package-lock.json` have uncommitted changes: just added deps
-`supabase` (devDep), `@supabase/supabase-js`, `@supabase/ssr`. **Plan: fold these into the
-first Phase 1 commit** alongside the client scaffold that uses them (don't commit them orphaned).
-Run `git status` to confirm before the first build commit.
+- **`profiles` migration** (`supabase/migrations/`), applied via the Supabase MCP and saved as
+  files whose names match the remote ledger version (so `supabase db push` won't try to replay):
+  - `…_create_profiles.sql` — `public.profiles` (email mirror + soft-delete `deleted_at`), a
+    shared `set_updated_at()` trigger, the `handle_new_user()` signup trigger (mirrors
+    `auth.users` → profile; reads `first_name`/`last_name`/`time_zone` from signup metadata),
+    RLS enabled with **self read/update** policies + `authenticated` grants.
+  - `…_harden_trigger_functions.sql` — pins `set_updated_at`'s `search_path` and revokes RPC
+    `EXECUTE` on the trigger funcs. Security advisor now clean except Supabase's own
+    `rls_auto_enable` (platform function, not ours).
+  - **Deferred on purpose** (tables don't exist yet, noted in the SQL): co-member profile-read
+    policy → comes with `group_members`; `pending_invites` auto-join → extends
+    `handle_new_user()` in the invites migration.
+- **`@supabase/ssr` scaffold** under `src/lib/supabase/`: `config.ts` (validated env),
+  `client.ts` (browser), `server.ts` (async-`cookies()` server client), `database.types.ts`
+  (generated — regenerate after every migration). 
+- **`src/proxy.ts`** — Next 16 renamed `middleware`→`proxy` (`export function proxy`, **Node
+  runtime only**, `getAll`/`setAll` cookie pattern). Refreshes the session + gates routes: only
+  `/` and the future auth/invite paths are public; others redirect to `/login` (not built yet).
+  NOTE: proxy is **not** a hard security boundary — RLS + per-action auth checks are. 
+- **Starter cleanup:** `layout.tsx` metadata (was "Create Next App") and the `globals.css` Arial
+  override (was clobbering Geist) fixed.
+- **Verified:** `tsc --noEmit` clean; `next build` green and shows `ƒ Proxy (Middleware)`.
+- Known cosmetic warning: `next build` reports multiple lockfiles (a stray
+  `package-lock.json` one dir up in `PersonalProjects/`). Not ours; silence later via
+  `turbopack.root` if it becomes annoying.
+
+## Committed in this slice
+
+The previously-orphaned dep additions (`supabase` devDep, `@supabase/supabase-js`,
+`@supabase/ssr`) are now committed together with the Phase 1 code above — no longer dangling.
 
 ## NEXT STEPS (in order) — start here
 
-1. **Confirm MCP is connected.** Use a Supabase MCP tool to list tables / projects. Expect an
-   empty `public` schema. Sanity-check automatic-RLS is on.
-2. **First migration** (`DATA-MODEL.md §12` build order): `profiles` table (1:1 with `auth.users`,
-   includes `email` mirror + `deleted_at`) + `handle_new_user()` trigger (creates profile row,
-   consumes `pending_invites`) + RLS policies (self read/write; co-members read basics).
-   **Author the SQL as a file in `supabase/migrations/` for version control**, then apply (via MCP
-   `apply_migration` or `npx supabase db push`). Generate TS types afterward.
-3. **Scaffold `@supabase/ssr` client** — browser client, server client, and `middleware.ts` for
-   session refresh + route gating (only landing page public; everything else gated). **Read the
-   Next.js 16 docs first** (async cookies, middleware) — do NOT assume older API shapes.
-4. Continue P1 build order: `groups` + `group_members` (+ 15-member-cap trigger) →
-   `group_invites` & `pending_invites` (+ auto-join) → `manual_blocks` → `my_busy_intervals` /
-   `group_busy_intervals` → heatmap RPC. Then auth UI, group UI, etc.
+Steps 1–3 (confirm MCP, `profiles` migration, `@supabase/ssr` + proxy scaffold) are **DONE** — see
+"Phase 1 — application code" above. Continue from here:
+
+1. **`groups` + `group_members`** migration (`DATA-MODEL.md §3`): the two tables, the enums they
+   need (`member_role`, `member_status`, `join_control`), the **15-member-cap** `before insert`
+   trigger, and RLS (members read; admins/owner write). This also unlocks the **deferred
+   co-member profile-read policy** — add it to `profiles` here now that `group_members` exists.
+2. **`group_invites` + `pending_invites`** (`§4`–`§5`): token-link invites, email-keyed pending
+   invites, the invite-preview `security definer` RPC, and **extend `handle_new_user()`** to
+   consume `pending_invites` on signup (the auto-join).
+3. **`manual_blocks`** (`§7`) → **`my_busy_intervals` / `group_busy_intervals`** + **heatmap RPC**
+   (`§8`, on-the-fly per `§9-B`).
+4. Then the UI: auth (email+password first), group create/join, manual-block editor, heatmap.
+
+**Migration workflow reminder:** apply via Supabase MCP `apply_migration` **and** save a matching
+file in `supabase/migrations/` whose timestamp matches the version the ledger recorded (check with
+MCP `list_migrations`), then regenerate `src/lib/supabase/database.types.ts`. Run `get_advisors`
+(security) after DDL and clear anything you introduced. Never edit an already-applied migration —
+add a new one.
 
 ## Open decisions / reminders
 
@@ -87,8 +120,7 @@ Run `git status` to confirm before the first build commit.
   `DESIGN-PRINCIPLES.md`. Functional/unstyled-but-usable is fine for P1.
 - Auth method: email+password first; Google OAuth login is optional/later (also doubles as
   calendar consent in P2). Resend prod email depends on DMARC landing.
-- Fix the starter leftovers when touching app code: `layout.tsx` metadata still says "Create Next
-  App"; `globals.css` overrides the Geist font back to Arial (`body { font-family: Arial... }`).
+- ~~Fix starter leftovers (`layout.tsx` metadata, `globals.css` Arial override)~~ — DONE.
 - MCP write mode = convenience + prompt-injection risk on the dev DB. No real user data yet, so
   acceptable; revisit before production.
 
