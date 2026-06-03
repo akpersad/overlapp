@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Overlapp
 
-## Getting Started
+Group-scheduling app that kills the "I'll check my calendar" loop. **North star: a persistent
+shared group calendar** — availability lives continuously, so "when can we meet?" is answered
+before anyone asks (vs. When2Meet/Doodle one-off polls).
 
-First, run the development server:
+## Documentation
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- [`docs/SPEC.md`](docs/SPEC.md) — product spec (problem, decisions, journeys, roadmap). **Read first.**
+- [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) — finalized Postgres/Supabase schema, RLS, build order.
+- [`docs/DESIGN-PRINCIPLES.md`](docs/DESIGN-PRINCIPLES.md) — anti-AI-slop UI guardrails (visual design deferred until after P1).
+- [`docs/EMAIL-SETUP.md`](docs/EMAIL-SETUP.md) — Resend + Supabase auth mail, deliverability/DMARC.
+- [`CLAUDE.md`](CLAUDE.md) / [`AGENTS.md`](AGENTS.md) — agent instructions & current status.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 · `src/` + `@/*` alias ·
+Supabase (Postgres + Auth + Realtime + RLS) · mobile-first PWA.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> ⚠️ This Next.js has breaking changes vs. common knowledge — read `node_modules/next/dist/docs/`
+> before writing app code (see `AGENTS.md`).
 
-## Learn More
+## Getting started
 
-To learn more about Next.js, take a look at the following resources:
+1. Install deps: `npm install`
+2. Copy env template and fill in your Supabase values:
+   ```bash
+   cp .env.example .env.local
+   ```
+   At minimum set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   (Supabase Dashboard → Project Settings → API). See `.env.example` for the full list.
+3. Run the dev server:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Status
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Spec + data model finalized; Supabase project provisioned; Resend auth email wired. **Next: build
+Phase 1** (auth, groups, invites, manual blocks, group heatmap) — see `CLAUDE.md` for the live
+next step.

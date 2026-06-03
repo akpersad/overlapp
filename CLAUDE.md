@@ -41,5 +41,10 @@ P4 PWA polish (installable, push, offline, recurring).
 Spec complete; all product decisions settled. **Data model finalized** — see
 [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md). Design principles banked in
 [`docs/DESIGN-PRINCIPLES.md`](docs/DESIGN-PRINCIPLES.md) (visual design deferred until after
-P1's core loop). **Next: build Phase 1** (Supabase project + auth, groups, invites, manual
-blocks, group heatmap). No app code written yet — still the stock create-next-app starter.
+P1's core loop). **Infra done:** Supabase project provisioned (Data API on, auto-expose off,
+automatic RLS on); `.env.local` populated with Supabase URL + anon key; Resend auth email wired
+via custom SMTP + branded templates ([`docs/EMAIL-SETUP.md`](docs/EMAIL-SETUP.md)).
+
+**Next: build Phase 1** — scaffold the Supabase client, then migrations per `DATA-MODEL.md §12`
+(`profiles` + signup trigger first), auth, groups, invites, manual blocks, group heatmap. No app
+code written yet — still the stock create-next-app starter (open: CLI vs. dashboard for migrations).
