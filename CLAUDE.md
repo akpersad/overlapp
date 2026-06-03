@@ -56,9 +56,16 @@ starter leftovers cleaned (layout metadata, Geist font). `tsc` + `next build` bo
 Also done: `groups` + `group_members` migration — enums (`member_role`/`member_status`/
 `join_control`), 15-member-cap trigger, owner-auto-membership trigger, `SECURITY DEFINER`
 membership helpers (`is_group_member`/`is_group_admin`/`shares_group_with`) that break RLS
-recursion, full RLS posture, and the now-unblocked co-member profile-read policy (a follow-up
-migration re-granted helper `EXECUTE` to `authenticated`). Verified with a transactional
-RLS/trigger smoke test; advisors clean.
+recursion, full RLS posture, and the now-unblocked co-member profile-read policy. Two follow-up
+migrations fixed bugs the tests caught: re-granted helper `EXECUTE` to `authenticated`, and
+admitted a group to its owner in the SELECT policy so `insert().select()` works.
+
+**Testing set up** (see [`docs/TESTING.md`](docs/TESTING.md) — the durable strategy). Vitest with
+two projects: **unit** (pure logic) and **integration** (drives the real supabase-js → RLS path
+as actual signed-in users, against a **local Supabase stack** via Docker). 16 tests green, build
+clean. Strategy: test what exists at the end of every phase; the Playwright/visual (run-as-user +
+screenshot, then delete) layer is added once UI exists. Scripts: `test`, `test:unit`,
+`test:integration`, `db:start`/`db:reset`/`db:stop`.
 
 **Next:** `group_invites` & `pending_invites` (+ auto-join, extends `handle_new_user()`;
 invite-preview `security definer` RPC) → `manual_blocks` → busy-interval RPCs → heatmap, then

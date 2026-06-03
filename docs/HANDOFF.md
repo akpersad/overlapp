@@ -6,10 +6,20 @@
 ## TL;DR — where we are
 
 Product spec and data model are **finalized**. Backend infra (Supabase project, Resend auth
-email, Supabase MCP server) is **set up**. **Phase 1 is underway:** the `profiles` migration
-(table + signup trigger + RLS) is applied, and the `@supabase/ssr` client layer + `src/proxy.ts`
-session/route gate are scaffolded. The repo is no longer the stock starter. The immediate next
-task is the **`groups` + `group_members`** migration (continuing the `DATA-MODEL.md §12` order).
+email, Supabase MCP server) is **set up**. **Phase 1 is underway:** `profiles` and
+`groups`+`group_members` migrations are applied (with RLS, triggers, and two follow-up bug-fix
+migrations), the `@supabase/ssr` client layer + `src/proxy.ts` session/route gate are scaffolded,
+and a **test harness is in place** (Vitest unit + integration against a local Supabase stack;
+see `docs/TESTING.md`). The repo is no longer the stock starter. The immediate next task is the
+**`group_invites` + `pending_invites`** migration (continuing the `DATA-MODEL.md §12` order).
+
+**Testing.** `docs/TESTING.md` is the durable strategy: unit + integration now (16 tests green),
+Playwright visual/e2e once UI exists. Run integration tests against the **local** stack
+(`npm run db:start` then `npm run test`). After any migration: `npm run db:reset` + regenerate
+DB types. Don't run integration tests against the hosted project.
+
+**Soft-delete TODO (caught by tests):** a direct `UPDATE deleted_at` is blocked by RLS, so group
+dissolution needs a `SECURITY DEFINER` RPC — build it with group management (`DATA-MODEL.md §9-E`).
 
 ## Why this handoff exists
 

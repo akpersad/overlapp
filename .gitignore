@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+# Screenshots are captured during visual review, then deleted — never committed.
+/screenshots
+**/__screenshots__
 
 # next.js
 /.next/
