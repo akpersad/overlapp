@@ -38,6 +38,8 @@ P2 calendar sync + overrides → P3 multi-date proposals, nudges, quorum, write-
 P4 PWA polish (installable, push, offline, recurring).
 
 ## Status / next step
+**Resuming a session? Read [`docs/HANDOFF.md`](docs/HANDOFF.md) first** — full current-state handoff.
+
 Spec complete; all product decisions settled. **Data model finalized** — see
 [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md). Design principles banked in
 [`docs/DESIGN-PRINCIPLES.md`](docs/DESIGN-PRINCIPLES.md) (visual design deferred until after
