@@ -26,6 +26,10 @@ const PUBLIC_PATHS = [
   "/verify-email",
   "/auth",
   "/invite",
+  // Public legal pages (Phase 5) — reachable signed-out and required for Google
+  // OAuth verification; linked from the landing footer.
+  "/privacy",
+  "/terms",
   // PWA assets the browser fetches without a session (Phase 4): the service
   // worker, the manifest, and the offline fallback the SW serves when the
   // network is down (which may happen while signed out).

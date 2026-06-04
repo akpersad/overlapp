@@ -82,6 +82,18 @@ export default async function Home() {
           ))}
         </ul>
       </main>
+
+      <footer className="mx-auto flex w-full max-w-4xl items-center justify-center gap-4 px-4 py-8 text-xs text-zinc-500">
+        <span>© {new Date().getFullYear()} Overlapp</span>
+        <span aria-hidden>·</span>
+        <Link href="/privacy" className="hover:underline">
+          Privacy
+        </Link>
+        <span aria-hidden>·</span>
+        <Link href="/terms" className="hover:underline">
+          Terms
+        </Link>
+      </footer>
     </div>
   );
 }
