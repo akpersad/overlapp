@@ -15,12 +15,43 @@ function localToIso(date: string, time: string): string {
   return isNaN(d.getTime()) ? "" : d.toISOString();
 }
 
+// Split an ISO instant into the local date + time strings the inputs use.
+function isoToLocalParts(iso?: string): { date: string; time: string } {
+  if (!iso) return { date: "", time: "" };
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return { date: "", time: "" };
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
+}
+
 let nextId = 1;
 
-export function ProposeForm({ groupId }: { groupId: string }) {
+export function ProposeForm({
+  groupId,
+  initialTitle = "",
+  initialStart,
+  initialEnd,
+}: {
+  groupId: string;
+  initialTitle?: string;
+  initialStart?: string;
+  initialEnd?: string;
+}) {
   const [state, action, pending] = useActionState(createProposal, undefined);
+  // Seed the first candidate from a recurring-hangout occurrence when present
+  // (Phase 4 "Propose this"); otherwise an empty default slot.
+  const seeded = isoToLocalParts(initialStart);
+  const seededEnd = isoToLocalParts(initialEnd);
   const [drafts, setDrafts] = useState<Draft[]>([
-    { id: 0, date: "", start: "18:00", end: "19:00" },
+    {
+      id: 0,
+      date: seeded.date,
+      start: seeded.time || "18:00",
+      end: seededEnd.time || "19:00",
+    },
   ]);
 
   function update(id: number, patch: Partial<Draft>) {
@@ -60,6 +91,7 @@ export function ProposeForm({ groupId }: { groupId: string }) {
           id="title"
           name="title"
           required
+          defaultValue={initialTitle}
           placeholder="e.g. Dinner, Board game night"
           className={input}
         />

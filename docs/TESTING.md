@@ -100,7 +100,7 @@ At the close of each phase:
    screenshots**.
 6. Update `docs/HANDOFF.md` with what was verified.
 
-## Current coverage (Phases 1 + 2 complete, as of 2026-06-04)
+## Current coverage (Phases 1–4 complete, as of 2026-06-04)
 
 - **Unit** (`npm run test:unit`): `config.test.ts` (env validation), `format.test.ts`
   (initials / display-name / avatar colour), `rrule.test.ts` (RRULE build/describe/parse
@@ -109,7 +109,8 @@ At the close of each phase:
   cancellations, dropped rows), `service-role-grants.test.ts` (a **local/prod parity guard**:
   statically asserts every table the service-role client writes to has an explicit
   `grant … to service_role` in a migration — a live check can't catch this because the local
-  stack grants service_role implicitly). **35 tests.** (`server-only` is aliased to a stub —
+  stack grants service_role implicitly; now also lists `notifications`, `event_writebacks`, and
+  the P4 `push_subscriptions`). **41 tests.** (`server-only` is aliased to a stub —
   `tests/_stubs/server-only.ts` — so server-only modules' pure logic is unit-testable.)
 - **Integration** (local stack): `profiles.test.ts` (signup trigger + profile RLS),
   `groups.test.ts` (owner auto-membership, 15-member cap, RLS, owner-protection, soft-delete
@@ -120,8 +121,11 @@ At the close of each phase:
   (`dissolve_group`, `transfer_group_ownership`, role-integrity guard), `calendars.test.ts`
   (calendars/events/category_overrides owner-only RLS, **`calendar_secrets` denied to the
   client / readable only by the service role**, per-event + per-category override resolution
-  and precedence folded into `my_busy_intervals` / `group_busy_intervals` / `group_heatmap`).
-  **53 tests.**
+  and precedence folded into `my_busy_intervals` / `group_busy_intervals` / `group_heatmap`),
+  `proposals.test.ts` (P3 — create/lock/cancel RPCs, per-option tally + quorum, RSVP pre-fill,
+  response RLS), and the P4 suites: `push.test.ts` (`push_subscriptions` self-manage RLS + the
+  service-role sender path) and `hangouts.test.ts` (`recurring_hangouts` admin-write/member-read
+  RLS + the member-gated `upcoming_hangouts` expander RPC). **79 tests.**
 - **E2E + visual** (`npm run test:e2e`): `tests/e2e/core-loop.spec.ts` drives the full P1 loop
   as a real user against the LOCAL stack — landing → signup → onboarding → dashboard → create
   group → set availability → heatmap reflects it → public invite preview — screenshotting every

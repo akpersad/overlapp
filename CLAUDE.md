@@ -95,7 +95,7 @@ disconnect + reconnect to grant write access (`docs/GOOGLE-SETUP.md`). **The Goo
 (token refresh + `events.insert`) is VERIFIED against production (2026-06-04)** — a real event was
 created in the reconnected account; only the in-app lock→UI round-trip remains as a manual check.
 
-**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **39 unit + 65 integration (104)** green, plus a
+**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **41 unit + 79 integration (120)** green, plus a
 **Playwright e2e/visual** layer (`npm run test:e2e`) driving the whole loop as a user against the
 local stack (screenshots reviewed then deleted). `tsc`, `eslint`, `next build` all green. Scripts:
 `test`, `test:unit`, `test:integration`, `test:e2e`, `db:start`/`db:reset`/`db:stop`.
@@ -120,5 +120,26 @@ ledger versions `20260604154425`→`154507`: `create_proposals`, `heatmap_quorum
 `get_advisors(security)` clean except the same intentional WARNs (the new RPCs add the expected
 `security_definer_function_executable` WARNs — same accepted pattern as the existing group RPCs).
 
-**Next: Phase 4** — PWA polish (installable manifest, service worker, **Web Push** for
-proposals/nudges, offline group-calendar view, recurring hangouts).
+**Phase 4 (PWA polish) is COMPLETE and tested (2026-06-04).** All four deliverables shipped:
+**installable PWA** (`src/app/manifest.ts` → `/manifest.webmanifest`, generated "overlap"-mark icons
+in `public/icons/` via `scripts/generate-icons.mjs`, root-layout PWA metadata); **service worker**
+(`public/sw.js`, registered prod-only by `src/components/ServiceWorker.tsx` — app-shell precache,
+nav network-first→cache→`/offline`, push + notificationclick); **Web Push** (`web-push` + VAPID,
+`push_subscriptions` table, `src/lib/push.ts` wired into `notifyUsers` so every in-app notification
+also pushes; opt-in via `PushToggle` on profile + onboarding `InstallPrompt`); **offline group
+calendar** (heatmap caches each week in `localStorage`, renders last-saved with an offline banner);
+**recurring hangouts** (`recurring_hangouts` table + `upcoming_hangouts` RPC reusing
+`expand_block_occurrences`; group page lists next occurrences with a "Propose this" link that
+pre-seeds the P3 proposal form). Setup: [`docs/PWA-SETUP.md`](docs/PWA-SETUP.md) (VAPID keys; absent
+→ push silently disabled, app unaffected). **Phase 4 migrations applied to BOTH local and the hosted
+PRODUCTION project via MCP** (2 new, ledger versions `20260604183848` create_push_subscriptions,
+`20260604183918` create_recurring_hangouts; local filenames match). `get_advisors(security)` clean
+except the same intentional WARNs (the new `upcoming_hangouts` adds the expected member-gated
+`security_definer_function_executable` WARN) + the pre-existing `auth_leaked_password_protection`
+auth-config WARN.
+
+**Next: all four roadmap phases are done.** Pre-launch work (legal pages, OAuth verification,
+deploy) is in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); post-launch backlog (Microsoft/Apple
+calendars, Vault token encryption, install walkthrough) in [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
+Verify the live push round-trip against a production build + installed PWA once deployed (it can't be
+exercised by `next dev` or the e2e suite).

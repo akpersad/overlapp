@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/Avatar";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { requireProfile } from "@/lib/auth";
 import { card } from "@/lib/ui";
 import { OnboardingForm } from "./onboarding-form";
@@ -34,6 +35,7 @@ export default async function OnboardingPage() {
           timeZone={profile.time_zone}
         />
       </div>
+      <InstallPrompt />
     </div>
   );
 }

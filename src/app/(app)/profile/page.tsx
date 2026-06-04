@@ -4,6 +4,7 @@ import { signOut } from "@/lib/actions/auth";
 import { requireProfile, requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { btnSecondary, card } from "@/lib/ui";
+import { PushToggle } from "@/components/PushToggle";
 import { AvatarUpload } from "./avatar-upload";
 import { DeleteAccount } from "./delete-account";
 import { ProfileForm } from "./profile-form";
@@ -59,6 +60,13 @@ export default async function ProfilePage() {
         <Link href="/calendars" className={btnSecondary}>
           Manage calendars →
         </Link>
+      </div>
+
+      <div className={card}>
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          Notifications
+        </h2>
+        <PushToggle />
       </div>
 
       <div className={card}>

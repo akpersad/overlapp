@@ -22,6 +22,7 @@ const SERVER_WRITTEN_TABLES = [
   "groups", // dissolve owned groups (account deletion)
   "notifications", // notifyUsers (proposals: created/locked/cancelled/nudge)
   "event_writebacks", // writeBackProposal ledger (locked-event write-back)
+  "push_subscriptions", // sendPushToUsers (touch last_used_at + prune dead endpoints)
 ];
 
 const migrationsDir = fileURLToPath(

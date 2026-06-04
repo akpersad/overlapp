@@ -54,6 +54,25 @@
 - **E2E for override toggles** — seed `events` via the service role and click
   through the per-event / per-category controls (today's e2e only checks the
   "not configured" notice since Google isn't wired into the e2e env).
+- **Manually verify Web Push + the service worker end-to-end** (Phase 4). These
+  can't be exercised by `next dev` or the Playwright suite: the SW registers in
+  **production builds only**, push needs a **secure context** (https / installed
+  PWA), and iOS only permits push for an **installed** (Add to Home Screen) app.
+  After deploy, against a production build with VAPID keys set (`docs/PWA-SETUP.md`):
+  - **Install** the PWA on Android + iOS; confirm the manifest icons/name and that
+    it launches standalone.
+  - **Subscribe** via the profile "Notifications" toggle (and the onboarding prompt
+    on an installed device); confirm a `push_subscriptions` row is written.
+  - **Trigger** a notification (create/lock/cancel/nudge a proposal from another
+    account) and confirm the push arrives + tapping it deep-links to the right page.
+  - **Dead-endpoint pruning** — unsubscribe/uninstall, fire another push, confirm the
+    stale row is deleted (the sender drops 404/410 endpoints).
+  - **Offline calendar** — open a group online, go offline (DevTools / airplane mode),
+    reload, and confirm the heatmap shows the last-saved week with the offline banner
+    and `/offline` serves for never-visited pages.
+  - Consider an **automated push test** later (a headless run that stubs the push
+    service and asserts `sendPushToUsers` payload/pruning), but the encryption +
+    browser-permission path is genuinely hard to fake — manual is the realistic MVP.
 
 ## UX follow-ups
 
@@ -64,9 +83,10 @@
 - **Visual design pass** per `DESIGN-PRINCIPLES.md` (heatmap-as-hero, one accent,
   colourblind-safe). Free — just effort. The functional UI is intentionally plain.
 
-## Later roadmap phases (already planned — here for completeness)
+## Roadmap phases — all built
 
 - **Phase 3** — multi-date proposals, nudges, quorum, calendar write-back
-  (`DATA-MODEL.md §10`).
+  (`DATA-MODEL.md §10`). ✅ Built.
 - **Phase 4** — PWA: installable manifest, **Web Push** (free, VAPID keys),
-  offline view, recurring hangouts.
+  offline view, recurring hangouts (`docs/PWA-SETUP.md`). ✅ Built — see the
+  end-to-end verification checklist under **Quality / testing** above.

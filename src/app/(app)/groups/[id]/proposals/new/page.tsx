@@ -10,10 +10,13 @@ export const metadata = { title: "Propose a time · Overlapp" };
 
 export default async function NewProposalPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ title?: string; start?: string; end?: string }>;
 }) {
   const { id } = await params;
+  const { title, start, end } = await searchParams;
   const user = await requireUser();
   const supabase = await createClient();
 
@@ -49,7 +52,12 @@ export default async function NewProposalPage({
         lock the winner.
       </p>
       <div className={card}>
-        <ProposeForm groupId={group.id} />
+        <ProposeForm
+          groupId={group.id}
+          initialTitle={title ?? ""}
+          initialStart={start}
+          initialEnd={end}
+        />
       </div>
     </div>
   );

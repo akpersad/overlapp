@@ -5,6 +5,50 @@
 
 ## TL;DR — where we are
 
+**Phase 4 (PWA polish) is COMPLETE and tested (2026-06-04).** Built on branch
+`feature/phase-4-pwa` (off `main` @ `392b029`, which has P1–P3 via PR #6). All four P4 deliverables:
+- **Installable PWA** — `src/app/manifest.ts` (served at `/manifest.webmanifest`), generated
+  "overlap" Venn-mark icons in `public/icons/` (`scripts/generate-icons.mjs`, dependency-free PNG
+  encoder), and root-layout PWA metadata (`theme-color`, `apple-touch-icon`, `appleWebApp`).
+- **Service worker** — `public/sw.js` (registered by `src/components/ServiceWorker.tsx`,
+  **production-only** so it doesn't fight Turbopack HMR): app-shell precache, navigation
+  network-first → cache → `/offline` fallback, hashed-asset cache-first, plus `push` /
+  `notificationclick` handlers. New public route `src/app/offline/page.tsx` (+ proxy public paths
+  `/sw.js`, `/manifest.webmanifest`, `/offline`).
+- **Web Push** — `web-push` dep + VAPID keys (`.env.local`, `.env.example`). New table
+  `push_subscriptions` (self-manage RLS + service-role grant). `src/lib/push.ts` (`sendPushToUsers`,
+  prunes dead 404/410 endpoints) is wired **into `notifyUsers`** so every existing in-app
+  notification (proposal create/lock/cancel/nudge) also pushes — one fan-out, two channels, push
+  best-effort. Subscription mgmt via `src/lib/actions/push.ts` + `src/components/PushToggle.tsx`
+  (profile "Notifications" card + onboarding `InstallPrompt`, which only offers push when running
+  installed/standalone, per spec §Onboarding).
+- **Offline group calendar** — the heatmap caches each loaded week in `localStorage` and renders
+  the last saved week with an "Offline — showing the last saved availability" banner when the RPC
+  is unreachable (`heatmap.tsx`).
+- **Recurring hangouts** — new table `recurring_hangouts` (admin-write / member-read RLS), stored
+  like a manual block (anchor + `rrule`) so the tested `expand_block_occurrences` powers the new
+  `upcoming_hangouts(group_id, horizon)` RPC. Group page lists each hangout + its next occurrence
+  with a **"Propose this"** link that pre-seeds the Phase-3 proposal form (`ProposeForm` now accepts
+  `initialTitle/Start/End`; `/proposals/new` reads them from searchParams). Admin create/delete via
+  `src/lib/actions/hangouts.ts` + `hangout-form.tsx`.
+- **Setup:** [`docs/PWA-SETUP.md`](PWA-SETUP.md) (VAPID keys; absent → push silently disabled, app
+  unaffected).
+- **Tests:** **41 unit + 79 integration (120)** green (+2 unit from the service-role parity guard
+  gaining `push_subscriptions`; +14 integration: `push.test.ts` ×6, `hangouts.test.ts` ×8). `tsc`,
+  `eslint`, `next build`, and e2e all green (e2e run with Google env unset, as before).
+- **Migrations:** 2 applied to local **and** hosted PRODUCTION via MCP (ledger versions
+  `20260604183848` create_push_subscriptions, `20260604183918` create_recurring_hangouts; local
+  filenames match). `get_advisors(security)` clean except the same intentional WARNs (the new
+  `upcoming_hangouts` adds the expected member-gated `security_definer_function_executable` WARN,
+  same pattern as `group_heatmap`) + the pre-existing `auth_leaked_password_protection` auth-config
+  WARN (not introduced by P4).
+
+**Phase 4 is the last roadmap phase.** Remaining before launch: see [`docs/PRE-LAUNCH.md`] (legal
+pages, OAuth verification, deploy) and the post-launch backlog ([`docs/POST-LAUNCH.md`]) — incl.
+Microsoft/Apple calendars, Vault token encryption, and the parked "how to install the PWA" walkthrough.
+
+---
+
 **Phase 3 (multi-date proposals) is COMPLETE and tested (2026-06-04).** Built this session on the
 branch `feature/phase-3-proposals` (off `main` @ `40a76cc`, which now has P1+P2 via PR #5):
 - **Proposals** — a member seeds candidate slots (`/groups/[id]/proposals/new`); the group marks

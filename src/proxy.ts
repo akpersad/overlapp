@@ -26,6 +26,12 @@ const PUBLIC_PATHS = [
   "/verify-email",
   "/auth",
   "/invite",
+  // PWA assets the browser fetches without a session (Phase 4): the service
+  // worker, the manifest, and the offline fallback the SW serves when the
+  // network is down (which may happen while signed out).
+  "/sw.js",
+  "/manifest.webmanifest",
+  "/offline",
   // API routes that do their own auth and must not be redirected by the proxy:
   //   • the cron re-sync endpoint authenticates via CRON_SECRET (no session);
   //   • the Google OAuth callback verifies the session itself (and would lose
