@@ -17,11 +17,15 @@ const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
 
-// Read-only calendar access + the account email (for provider_account display).
+// Read calendar busy/free + write back locked events (Phase 3) + the account
+// email (for provider_account display). `calendar.events` is the writable scope
+// that powers write-back; connections made before Phase 3 had only
+// `calendar.readonly` and must reconnect to enable it (docs/GOOGLE-SETUP.md).
 export const GOOGLE_SCOPES = [
   "openid",
   "email",
   "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.events",
 ];
 
 export type GoogleTokens = {

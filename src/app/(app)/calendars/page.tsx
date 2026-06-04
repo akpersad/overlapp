@@ -4,6 +4,7 @@ import { LocalTime } from "@/components/LocalTime";
 import {
   connectGoogle,
   disconnectCalendar,
+  setCalendarWriteback,
   syncNow,
 } from "@/lib/actions/calendars";
 import { requireUser } from "@/lib/auth";
@@ -63,7 +64,7 @@ export default async function CalendarsPage({
       supabase
         .from("calendars")
         .select(
-          "id, provider, provider_account, display_name, sync_state, last_synced_at, last_error",
+          "id, provider, provider_account, display_name, sync_state, last_synced_at, last_error, writeback_enabled",
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: true }),
@@ -132,7 +133,7 @@ export default async function CalendarsPage({
         {hasCalendars && (
           <ul className="mb-4 flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
             {calendars!.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 py-3">
+              <li key={c.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-200">
                     {c.display_name ?? c.provider_account ?? "Google Calendar"}
@@ -153,6 +154,22 @@ export default async function CalendarsPage({
                     )}
                   </p>
                 </div>
+                <form action={setCalendarWriteback}>
+                  <input type="hidden" name="calendar_id" value={c.id} />
+                  <input
+                    type="hidden"
+                    name="enabled"
+                    value={c.writeback_enabled ? "false" : "true"}
+                  />
+                  <button
+                    className={`!py-1 !text-xs ${
+                      c.writeback_enabled ? btnPrimary : btnSecondary
+                    }`}
+                    title="Push locked proposal events to this calendar"
+                  >
+                    {c.writeback_enabled ? "Write-back on" : "Write-back off"}
+                  </button>
+                </form>
                 <form action={syncNow}>
                   <input type="hidden" name="calendar_id" value={c.id} />
                   <button className={`${btnSecondary} !py-1 !text-xs`}>

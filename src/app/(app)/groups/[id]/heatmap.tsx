@@ -20,6 +20,8 @@ type Slot = {
   free_count: number;
   total_members: number;
   everyone_free: boolean;
+  quorum: number;
+  meets_quorum: boolean;
 };
 
 /** Monday 00:00 (local) of the week containing `base`, offset by `weeks`. */
@@ -194,7 +196,11 @@ export function Heatmap({
         </div>
       </div>
 
-      <Legend loading={loading} total={slots[0]?.total_members ?? 0} />
+      <Legend
+        loading={loading}
+        total={slots[0]?.total_members ?? 0}
+        quorum={slots[0]?.quorum ?? 0}
+      />
     </div>
   );
 }
@@ -204,7 +210,11 @@ function HeatCell({ slot, label }: { slot?: Slot; label: string }) {
     return <div className="h-5 rounded-[2px] bg-zinc-100 dark:bg-zinc-800" />;
   }
   const ratio = slot.free_count / slot.total_members;
-  const title = `${label}: ${slot.free_count}/${slot.total_members} free`;
+  // The quorum verdict only differs from "everyone" when a quorum < total is
+  // set, so naming it in the tooltip stays informative either way.
+  const quorumNote =
+    slot.quorum < slot.total_members ? ` (quorum ${slot.quorum})` : "";
+  const title = `${label}: ${slot.free_count}/${slot.total_members} free${quorumNote}`;
 
   if (slot.everyone_free) {
     return (
@@ -216,20 +226,35 @@ function HeatCell({ slot, label }: { slot?: Slot; label: string }) {
       </div>
     );
   }
+  // "Good enough" quorum slots are outlined (a shape cue, not a second hue — so
+  // they survive colourblindness, per DESIGN-PRINCIPLES) on top of the ramp.
+  const quorumRing =
+    slot.meets_quorum && slot.quorum < slot.total_members
+      ? " ring-2 ring-inset ring-indigo-500"
+      : "";
   return (
     <div
       title={title}
       style={{ backgroundColor: `rgba(79, 70, 229, ${0.12 + ratio * 0.6})` }}
-      className="flex h-5 items-center justify-center rounded-[2px] text-[10px] text-zinc-700 dark:text-zinc-100"
+      className={`flex h-5 items-center justify-center rounded-[2px] text-[10px] text-zinc-700 dark:text-zinc-100${quorumRing}`}
     >
       {slot.free_count > 0 ? slot.free_count : ""}
     </div>
   );
 }
 
-function Legend({ loading, total }: { loading: boolean; total: number }) {
+function Legend({
+  loading,
+  total,
+  quorum,
+}: {
+  loading: boolean;
+  total: number;
+  quorum: number;
+}) {
+  const showQuorum = quorum > 0 && quorum < total;
   return (
-    <div className="flex items-center gap-3 text-xs text-zinc-500">
+    <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
       {loading ? (
         <span>Loading availability…</span>
       ) : (
@@ -238,6 +263,12 @@ function Legend({ loading, total }: { loading: boolean; total: number }) {
             <span className="h-3 w-3 rounded-[2px] bg-indigo-600 ring-1 ring-inset ring-indigo-300" />
             Everyone free
           </span>
+          {showQuorum && (
+            <span className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-[2px] bg-indigo-300 ring-2 ring-inset ring-indigo-500" />
+              Quorum ({quorum}+)
+            </span>
+          )}
           <span className="flex items-center gap-1">
             <span className="h-3 w-3 rounded-[2px] bg-indigo-300" />
             Some free

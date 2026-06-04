@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Avatar } from "@/components/Avatar";
+import { LocalTime } from "@/components/LocalTime";
 import { requireUser } from "@/lib/auth";
 import {
   approveMember,
@@ -91,6 +92,26 @@ export default async function GroupPage({
   const rank: Record<string, number> = { owner: 0, admin: 1, member: 2 };
   active.sort((a, b) => rank[a.role] - rank[b.role]);
 
+  // Proposals (Phase 3). Newest first; locked ones show their chosen time.
+  const { data: proposalRows } = await supabase
+    .from("proposals")
+    .select("id, title, status, created_by, final_option, created_at")
+    .eq("group_id", id)
+    .order("created_at", { ascending: false });
+  const proposals = proposalRows ?? [];
+  const finalOptionIds = proposals
+    .map((p) => p.final_option)
+    .filter((x): x is string => Boolean(x));
+  const finalTimes = new Map<string, { starts_at: string; ends_at: string }>();
+  if (finalOptionIds.length > 0) {
+    const { data: opts } = await supabase
+      .from("proposal_options")
+      .select("id, starts_at, ends_at")
+      .in("id", finalOptionIds);
+    for (const o of opts ?? [])
+      finalTimes.set(o.id, { starts_at: o.starts_at, ends_at: o.ends_at });
+  }
+
   let invites: { id: string; token: string; use_count: number }[] = [];
   let pendingEmails: { id: string; email: string }[] = [];
   if (isAdmin) {
@@ -134,6 +155,53 @@ export default async function GroupPage({
             Update your availability →
           </Link>
         </p>
+      </section>
+
+      {/* Proposals (Phase 3 — multi-date scheduling) */}
+      <section className={card}>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            Proposals
+          </h2>
+          <Link
+            href={`/groups/${group.id}/proposals/new`}
+            className={`${btnSecondary} !py-1 !text-xs`}
+          >
+            Propose a time
+          </Link>
+        </div>
+        {proposals.length === 0 ? (
+          <p className="text-sm text-zinc-500">
+            No proposals yet. Seed a few candidate times and let the group mark
+            availability.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+            {proposals.map((p) => {
+              const final = p.final_option
+                ? finalTimes.get(p.final_option)
+                : undefined;
+              return (
+                <li key={p.id}>
+                  <Link
+                    href={`/groups/${group.id}/proposals/${p.id}`}
+                    className="flex items-center gap-3 py-2 hover:opacity-80"
+                  >
+                    <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                      {p.title}
+                    </span>
+                    <ProposalBadge status={p.status} />
+                    {final && (
+                      <span className="ml-auto text-xs text-zinc-500">
+                        <LocalTime iso={final.starts_at} />
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       {/* Pending approvals (admins) */}
@@ -291,6 +359,24 @@ export default async function GroupPage({
         )}
       </section>
     </div>
+  );
+}
+
+function ProposalBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    open: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
+    locked: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
+    cancelled: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+    draft: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+  };
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+        styles[status] ?? styles.draft
+      }`}
+    >
+      {status}
+    </span>
   );
 }
 

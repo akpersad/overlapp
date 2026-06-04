@@ -78,6 +78,50 @@ export function mapGoogleEvent(g: GoogleEvent): MappedEvent | null {
   };
 }
 
+// Insert an event into the user's primary calendar (Phase 3 write-back). Returns
+// the provider event id. `timeZone` (the proposal's pinned_tz) is optional —
+// when absent the UTC-offset dateTimes stand on their own. Throws
+// "insufficient_scope" on 403 so the caller can prompt a reconnect.
+export async function insertCalendarEvent(
+  accessToken: string,
+  ev: {
+    summary: string;
+    description?: string | null;
+    startsAt: string; // ISO
+    endsAt: string; // ISO
+    timeZone?: string | null;
+  },
+): Promise<string> {
+  const start: Record<string, string> = { dateTime: ev.startsAt };
+  const end: Record<string, string> = { dateTime: ev.endsAt };
+  if (ev.timeZone) {
+    start.timeZone = ev.timeZone;
+    end.timeZone = ev.timeZone;
+  }
+
+  const res = await fetch(EVENTS_ENDPOINT, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      summary: ev.summary,
+      description: ev.description ?? undefined,
+      start,
+      end,
+    }),
+  });
+
+  if (res.status === 403) throw new Error("insufficient_scope");
+  if (!res.ok) {
+    throw new Error(`Google events.insert failed (${res.status}): ${await res.text()}`);
+  }
+  const json = (await res.json()) as { id?: string };
+  if (!json.id) throw new Error("Google events.insert returned no id");
+  return json.id;
+}
+
 export type FetchResult = {
   events: MappedEvent[];
   nextSyncToken: string | null;

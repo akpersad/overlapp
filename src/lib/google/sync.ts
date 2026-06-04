@@ -5,7 +5,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAccountEmail, refreshAccessToken, type GoogleTokens } from "./oauth";
-import { fetchCalendarEvents, type MappedEvent } from "./calendar";
+import {
+  fetchCalendarEvents,
+  insertCalendarEvent,
+  type MappedEvent,
+} from "./calendar";
 
 type Admin = SupabaseClient<Database>;
 
@@ -245,6 +249,120 @@ export async function syncCalendar(calendarId: string): Promise<SyncResult> {
       .eq("id", calendarId);
     return { ok: false, error: message };
   }
+}
+
+// ----------------------------------------------------------------------------
+// Write-back (Phase 3). When a proposal is locked, push the chosen slot into the
+// real calendar of every active member who opted in (calendars.writeback_enabled
+// + a writable Google connection). Idempotent via the event_writebacks ledger,
+// best-effort per member (one member's failure never blocks the rest). Run with
+// the service role from the lockProposal Server Action.
+// ----------------------------------------------------------------------------
+export type WritebackResult = {
+  written: number;
+  skipped: number;
+  failed: number;
+};
+
+export async function writeBackProposal(
+  proposalId: string,
+): Promise<WritebackResult> {
+  const admin = createAdminClient();
+  const result: WritebackResult = { written: 0, skipped: 0, failed: 0 };
+
+  const { data: proposal } = await admin
+    .from("proposals")
+    .select("id, group_id, title, description, status, final_option, pinned_tz")
+    .eq("id", proposalId)
+    .maybeSingle();
+  if (!proposal || proposal.status !== "locked" || !proposal.final_option) {
+    return result;
+  }
+
+  const { data: option } = await admin
+    .from("proposal_options")
+    .select("starts_at, ends_at")
+    .eq("id", proposal.final_option)
+    .maybeSingle();
+  if (!option) return result;
+
+  const { data: members } = await admin
+    .from("group_members")
+    .select("user_id")
+    .eq("group_id", proposal.group_id)
+    .eq("status", "active");
+
+  for (const member of members ?? []) {
+    // Skip if we've already pushed this proposal to this member.
+    const { data: already } = await admin
+      .from("event_writebacks")
+      .select("proposal_id")
+      .eq("proposal_id", proposalId)
+      .eq("user_id", member.user_id)
+      .maybeSingle();
+    if (already) {
+      result.skipped++;
+      continue;
+    }
+
+    // A writable, non-revoked Google calendar the member opted in for.
+    const { data: calendar } = await admin
+      .from("calendars")
+      .select("id")
+      .eq("user_id", member.user_id)
+      .eq("provider", "google")
+      .eq("writeback_enabled", true)
+      .neq("sync_state", "revoked")
+      .limit(1)
+      .maybeSingle();
+    if (!calendar) {
+      result.skipped++;
+      continue;
+    }
+
+    const { data: secret } = await admin
+      .from("calendar_secrets")
+      .select("access_token, refresh_token, token_expires_at")
+      .eq("calendar_id", calendar.id)
+      .maybeSingle();
+    if (!secret) {
+      result.skipped++;
+      continue;
+    }
+
+    try {
+      const accessToken = await ensureAccessToken(admin, calendar.id, secret);
+      const providerEventId = await insertCalendarEvent(accessToken, {
+        summary: proposal.title,
+        description: proposal.description,
+        startsAt: option.starts_at,
+        endsAt: option.ends_at,
+        timeZone: proposal.pinned_tz,
+      });
+      await admin.from("event_writebacks").insert({
+        proposal_id: proposalId,
+        user_id: member.user_id,
+        calendar_id: calendar.id,
+        provider_event_id: providerEventId,
+      });
+      result.written++;
+    } catch (err) {
+      result.failed++;
+      const message = err instanceof Error ? err.message : String(err);
+      const note =
+        message === "insufficient_scope"
+          ? "Reconnect to enable write-back (calendar write permission)."
+          : message === "reauth_required"
+            ? "Authorization expired — reconnect."
+            : `Write-back failed: ${message}`;
+      await admin
+        .from("calendars")
+        .update({ last_error: note })
+        .eq("id", calendar.id);
+    }
+  }
+
+  return result;
 }
 
 // Sync every calendar that's due — used by the background cron. "Due" = not

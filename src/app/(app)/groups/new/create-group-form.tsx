@@ -56,6 +56,25 @@ export function CreateGroupForm() {
         </div>
       </div>
 
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="quorum" className={label}>
+          Quorum <span className="text-zinc-400">(optional)</span>
+        </label>
+        <input
+          id="quorum"
+          name="quorum"
+          type="number"
+          min={1}
+          max={15}
+          placeholder="Everyone"
+          className={input}
+        />
+        <p className="text-xs text-zinc-500">
+          How many free counts as &ldquo;good enough.&rdquo; Leave blank to
+          require everyone.
+        </p>
+      </div>
+
       {state?.error && <p className={errorText}>{state.error}</p>}
       <button type="submit" disabled={pending} className={btnPrimary}>
         {pending ? "Creating…" : "Create group"}

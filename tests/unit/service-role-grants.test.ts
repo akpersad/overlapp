@@ -20,6 +20,8 @@ const SERVER_WRITTEN_TABLES = [
   "calendar_secrets", // token store (sync worker)
   "events", // upsert/prune (sync worker)
   "groups", // dissolve owned groups (account deletion)
+  "notifications", // notifyUsers (proposals: created/locked/cancelled/nudge)
+  "event_writebacks", // writeBackProposal ledger (locked-event write-back)
 ];
 
 const migrationsDir = fileURLToPath(

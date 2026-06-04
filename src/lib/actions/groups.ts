@@ -12,6 +12,13 @@ type MemberRole = Database["public"]["Enums"]["member_role"];
 
 export type ActionState = { error: string } | undefined;
 
+// Quorum form value → column value. "" / "everyone" / non-positive → null
+// (= everyone, the default). Otherwise a positive member count (P3 §Quorum).
+function parseQuorum(raw: FormDataEntryValue | null): number | null {
+  const n = Number(String(raw ?? "").trim());
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 // ---------------------------------------------------------------------------
 // Create
 // ---------------------------------------------------------------------------
@@ -24,6 +31,7 @@ export async function createGroup(
   const description = String(formData.get("description") ?? "").trim();
   const slotMinutes = Number(formData.get("slot_minutes") ?? 30);
   const joinPolicy = String(formData.get("join_policy") ?? "open") as JoinControl;
+  const quorum = parseQuorum(formData.get("quorum"));
 
   if (!name) return { error: "A group name is required." };
   if (![15, 30, 60].includes(slotMinutes)) return { error: "Invalid slot size." };
@@ -36,6 +44,7 @@ export async function createGroup(
       description: description || null,
       slot_minutes: slotMinutes,
       join_policy: joinPolicy === "approval" ? "approval" : "open",
+      quorum,
       owner_id: user.id,
     })
     .select("id")
@@ -58,6 +67,7 @@ export async function updateGroup(
   const description = String(formData.get("description") ?? "").trim();
   const slotMinutes = Number(formData.get("slot_minutes") ?? 30);
   const joinPolicy = String(formData.get("join_policy") ?? "open") as JoinControl;
+  const quorum = parseQuorum(formData.get("quorum"));
 
   if (!id) return { error: "Missing group." };
   if (!name) return { error: "A group name is required." };
@@ -70,6 +80,7 @@ export async function updateGroup(
       description: description || null,
       slot_minutes: [15, 30, 60].includes(slotMinutes) ? slotMinutes : 30,
       join_policy: joinPolicy === "approval" ? "approval" : "open",
+      quorum,
     })
     .eq("id", id);
 
