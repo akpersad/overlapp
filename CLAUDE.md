@@ -88,7 +88,9 @@ explicit `service_role` grants on server-written tables — needed because the h
 auto-expose OFF, a local/prod parity gap now guarded by `tests/unit/service-role-grants.test.ts`).
 `get_advisors(security)` is clean except the intentional `security_definer_function_executable`
 WARNs and the **intentional** `calendar_secrets` RLS-enabled-no-policy INFO (that table is
-service-role-only by design, §9-C). Local file names match the remote ledger versions. The live
-Google OAuth round-trip still needs real credentials (manual verification per `GOOGLE-SETUP.md §5`).
+service-role-only by design, §9-C). Local file names match the remote ledger versions. **The live
+Google OAuth round-trip is VERIFIED end-to-end against production** (2026-06-04): real connect →
+consent → token exchange → first sync into `events` → `/calendars?connected=1`. (Google setup
+gotchas — Test users + Data Access scopes — are documented in `GOOGLE-SETUP.md`.)
 
 **Next: Phase 3** — multi-date proposals, nudges, quorum, calendar write-back (`DATA-MODEL.md §10`).

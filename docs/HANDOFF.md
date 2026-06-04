@@ -33,8 +33,16 @@ auto-expose OFF, so those grants aren't implicit like they are locally (a parity
 `tests/unit/service-role-grants.test.ts`). `get_advisors(security)` is
 clean except the intentional `security_definer_function_executable` WARNs and the intentional
 `calendar_secrets` RLS-enabled-no-policy INFO (service-role-only by design, §9-C). Applying tested
-migrations to the hosted project via MCP is now standing practice (test locally first). The live
-Google OAuth round-trip needs real credentials (manual check, `GOOGLE-SETUP.md §5`).
+migrations to the hosted project via MCP is now standing practice (test locally first).
+
+**The live Google OAuth round-trip is VERIFIED end-to-end against production (2026-06-04):** the
+user created a Web OAuth client, set `GOOGLE_CLIENT_ID/SECRET` in `.env.local`, and a real connect
+(consent → code exchange → tokens in `calendar_secrets` → first sync into `events`) landed on
+`/calendars?connected=1` with events synced. Two setup gotchas hit + documented in
+`GOOGLE-SETUP.md`: (1) testers must be added under the consent screen's **Test users** (else
+`Error 403: access_denied`); (2) the `calendar.readonly` scope is declared under **Data Access**.
+The `service_role`-grants fix above was found *because* of this live test (it 403'd until granted).
+
 **Next: Phase 3** (multi-date proposals — `DATA-MODEL.md §10`).
 
 ---
@@ -80,9 +88,11 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
 - **⚠️ Next.js 16 caveat:** This Next.js has breaking changes vs. training-data knowledge
   (see `AGENTS.md`). **Read `node_modules/next/dist/docs/` before writing app code** — esp.
   async `cookies()`/`headers()` and middleware patterns, which matter for `@supabase/ssr`.
-- **Git:** repo at `overlapp/`. `main` has foundation + groups + invites merged (PRs #1, #2, #3).
-  **All Phase 1 work (DB availability/management layer + the full app UI) is committed on branch
-  `feature/phase-1-complete`** — one commit, not yet pushed or PR'd (awaiting the user's go-ahead).
+- **Git:** repo at `overlapp/`. `main` is at `b26f8fb` (foundation + groups + invites + the full
+  Phase 1 app, PRs #1–#4). **All Phase 1 follow-ups + Phase 2 are committed on branch
+  `feature/phase-1-completion-and-phase-2`** (6 commits ahead of `main`) — **not yet pushed or
+  PR'd** (awaiting the user's go-ahead). The session's first move was un-committing a stray
+  docs-only commit off `main` and re-landing it on this branch.
 - **Supabase project ref:** `qildwjcnzyejgjvnyohi` (Americas region). ⚠️ **This is the PRODUCTION
   project — there is no separate dev project.** Always develop + test against the **local** stack
   first (`db:reset` + full suite green) before applying anything here. Security settings: Data API
@@ -94,8 +104,12 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
 ### Documentation (all committed)
 - `docs/SPEC.md` — product spec (problem, decisions, journeys, roadmap). Source of truth.
 - `docs/DATA-MODEL.md` — **finalized** Postgres/Supabase schema, RLS posture, build order (§12).
-  Locked decisions: RRULE recurrence · Vault server-only OAuth tokens · soft-delete (`deleted_at`)
+  Locked decisions: RRULE recurrence · server-only OAuth tokens · soft-delete (`deleted_at`)
   · on-the-fly heatmap RPC for P1 · email mirrored into `profiles` via signup trigger.
+  (P2 implemented the §9-C **service-role-only** token store — `calendar_secrets` with no Data-API
+  grants — rather than Vault encryption-at-rest; Vault is a post-launch hardening item.)
+- `docs/GOOGLE-SETUP.md` — Google Calendar OAuth + sync setup (P2). `docs/POST-LAUNCH.md` —
+  non-MVP backlog, free-tier-first.
 - `docs/DESIGN-PRINCIPLES.md` — anti-AI-slop UI guardrails. Visual design was deferred until P1's
   core loop worked; that gate has **now cleared**, so a deliberate design pass is unblocked.
   Sketch/reference-first; heatmap is the hero; one accent color; color must survive colorblindness.
@@ -103,8 +117,11 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
 
 ### Infra
 - **Supabase project** provisioned (ref above).
-- **`.env.local`** populated by the user with `NEXT_PUBLIC_SUPABASE_URL` +
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY`. `.env.example` is the committed template. `.env*` is gitignored.
+- **`.env.local`** has `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` +
+  `SUPABASE_SERVICE_ROLE_KEY` (all pointing at the **hosted production** project — so `next dev`
+  reads/writes prod) and the Phase 2 `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`. `CRON_SECRET` is
+  not set locally (only needed for the deployed cron). `.env.example` is the committed template;
+  `.env*` is gitignored. NB: e2e/integration tests override the Supabase vars to the **local** stack.
 - **Resend auth email** wired: custom SMTP (`smtp.resend.com:465`, user `resend`, pass = API key),
   sending from `noreply@payroll.persadpay.com`. Branded templates in `docs/email-templates/`
   (user pastes into Supabase → Authentication → Emails → Templates).

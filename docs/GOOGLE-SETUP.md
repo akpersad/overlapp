@@ -23,11 +23,21 @@ intervals), never event titles. Tokens live in `calendar_secrets`
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → create/select a
    project.
-2. **APIs & Services → Library →** enable the **Google Calendar API**.
-3. **APIs & Services → OAuth consent screen**: configure it (External is fine for
-   testing). Add the scopes `openid`, `email`, and
-   `https://www.googleapis.com/auth/calendar.readonly`. While in "Testing", add
-   your Google account(s) under **Test users**.
+2. **APIs & Services → Library →** enable the **Google Calendar API** (must be on
+   for the `calendar.readonly` scope to appear in the picker later).
+3. **APIs & Services → OAuth consent screen** (newer console: **Google Auth
+   Platform**): configure it (External is fine for testing).
+   - **Data Access** (older UI: the "Scopes" step) → **Add or remove scopes** →
+     add `openid`, `…/auth/userinfo.email`, and `…/auth/calendar.readonly`. If
+     `calendar.readonly` isn't listed, paste it into "Manually add scopes". The
+     setup *wizard may skip this step* — add it here afterward. **Note:** the app
+     also requests these at runtime, so a connect can work before they're
+     declared, but declaring them is required before going public.
+   - **Audience → Test users** → add every Google account you'll test with.
+     ⚠️ While the app is in "Testing", a non-listed account gets
+     **`Error 403: access_denied` ("Overlapp has not completed the Google
+     verification process")** — that means *add the account as a test user*, NOT
+     that you need full Google verification (that's only for public launch).
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
    - Application type: **Web application**.
    - **Authorized redirect URIs** — add exactly (no trailing slash):
@@ -99,15 +109,28 @@ safe. Cron only runs on a deployed Vercel app — it does nothing locally / in
 
 ## 5. Verifying locally
 
-OAuth requires real Google credentials, so the live round-trip is a manual check:
+OAuth requires real Google credentials, so the live round-trip is a manual check.
+**Status: ✅ verified end-to-end against the production Supabase project on
+2026-06-04.** To repeat it:
 
-1. Fill in the env above (use a Google **test user** account).
-2. `npm run db:start && npm run db:reset`, then point `.env.local`'s
-   `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY`/`SERVICE_ROLE_KEY` at the **local** stack
-   (`npx supabase status`), and `npm run dev`.
-3. Sign up → `/calendars` → **Connect Google Calendar** → consent.
-4. You should land back on `/calendars?connected=1` with your events listed and
-   each group's heatmap reflecting your real busy time.
+1. Fill in the env above (use a Google account added under **Test users**).
+2. `npm run dev` and open `http://localhost:3000`. Sign up / log in → **Calendars**
+   → **Connect Google Calendar** → consent (click through the "unverified app"
+   screen → Advanced → continue).
+3. You should land on `/calendars?connected=1` with your events listed (Free/Busy
+   badges + override dropdowns) and each group's heatmap reflecting real busy time.
+
+> **Which Supabase does `next dev` hit?** It reads `.env.local`, which points at
+> the **hosted production** project — so a local connect writes real rows to prod.
+> Fine for an owner smoke test. To exercise the flow against the **local** stack
+> instead, override `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY`/`SERVICE_ROLE_KEY` with
+> `npx supabase status` values (this is what the e2e webServer does).
+
+> **If the callback redirects to `/calendars?error=connect_failed`:** check the
+> dev-server logs (the callback logs `[google-connect] failed: …`). The classic
+> cause is missing `service_role` table grants on a hosted project with
+> auto-expose OFF — fixed by migration `grant_service_role_server_tables` and
+> guarded by `tests/unit/service-role-grants.test.ts`.
 
 The DB layer (RLS, token isolation, override resolution, heatmap aggregation) is
 covered by automated tests (`tests/integration/calendars.test.ts`); the event
