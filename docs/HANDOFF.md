@@ -24,10 +24,11 @@ dissolution needs a `SECURITY DEFINER` RPC — build it with group management (`
 
 ## Why this handoff exists
 
-The user is **restarting Claude Code** to load the newly-added Supabase MCP server (`.mcp.json`).
-MCP servers only load at startup, and project-scoped servers require one-time approval. After
-restart the user must: approve the `supabase` project server → run `/mcp` → authenticate
-(browser OAuth). Once `/mcp` shows `supabase` = **connected**, the Supabase tools are available.
+Continuity between sessions: lets a fresh Claude Code session resume without re-deriving state.
+
+**Supabase MCP is connected and working** (used to apply migrations this session). If a new
+session shows it disconnected: run `/mcp` → authenticate (browser OAuth). MCP servers load only
+at startup, so a freshly-edited `.mcp.json` needs a restart.
 
 ## Project facts
 
@@ -37,7 +38,8 @@ restart the user must: approve the `supabase` project server → run `/mcp` → 
 - **⚠️ Next.js 16 caveat:** This Next.js has breaking changes vs. training-data knowledge
   (see `AGENTS.md`). **Read `node_modules/next/dist/docs/` before writing app code** — esp.
   async `cookies()`/`headers()` and middleware patterns, which matter for `@supabase/ssr`.
-- **Git:** repo at `overlapp/`, branch `feature/initial-scaffold`. No remote pushes yet.
+- **Git:** repo at `overlapp/`. `main` has the foundation + groups work merged (PRs #1, #2).
+  Invites work is committed on branch **`feature/invites`** (not yet pushed/PR'd).
 - **Supabase project ref:** `qildwjcnzyejgjvnyohi` (Americas region). Security settings:
   Data API ON, auto-expose-new-tables OFF, automatic-RLS ON (new tables get RLS auto-enabled →
   every table needs explicit grants + policies in its migration or it's deny-all).
@@ -66,7 +68,7 @@ restart the user must: approve the `supabase` project server → run `/mcp` → 
     (`_dmarc` → `v=DMARC1; p=none; rua=mailto:akpersad@gmail.com`). Status: in progress / verify.
 - **Supabase MCP server** configured in `.mcp.json` (hosted HTTP `mcp.supabase.com`,
   scoped to project ref, OAuth — no token in repo). **Mode: WRITE-enabled** (user chose this; MCP
-  can run migrations/SQL directly). Pending: restart + OAuth (see above).
+  can run migrations/SQL directly). **Connected and in active use** (applied the invites migration).
 - **Supabase CLI** also installed (`npx supabase`, v2.104.0) as a devDependency — fallback/option
   for versioned migrations. Docker is available for `supabase start` (local dev) if wanted.
 
@@ -97,6 +99,15 @@ restart the user must: approve the `supabase` project server → run `/mcp` → 
 - Known cosmetic warning: `next build` reports multiple lockfiles (a stray
   `package-lock.json` one dir up in `PersonalProjects/`). Not ours; silence later via
   `turbopack.root` if it becomes annoying.
+
+### Phase 1 — migrations since the first slice
+
+- **`groups` + `group_members`** (`20260603210859` + fixes `…211217`, `…214316`): enums, 15-cap
+  trigger, owner-auto-membership, `SECURITY DEFINER` membership helpers, full RLS.
+- **`group_invites` + `pending_invites`** (`20260604003050_create_invites`): token-link invites,
+  `get_invite_preview`/`redeem_group_invite` RPCs, email normaliser, `handle_new_user()` auto-join.
+
+Both are detailed (with the bugs their tests caught) in **NEXT STEPS** below, marked DONE.
 
 ## Committed in this slice
 
