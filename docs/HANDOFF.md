@@ -5,6 +5,47 @@
 
 ## TL;DR — where we are
 
+**Phase 6 (Microsoft Calendar) is COMPLETE and tested (2026-06-04).** Built on branch
+`feature/phase-6-microsoft-calendar` (off `main` @ `47106f4`, which has P1–P5 via PR #8). The
+architectural twin of Google, built by **extracting a provider-agnostic sync layer** instead of
+copy-pasting:
+- **Shared orchestrator** — `src/lib/calendar/sync.ts` now owns all the stateful sync logic
+  (`saveConnection`, `syncCalendar`, `syncDueCalendars`, `writeBackProposal`, token refresh, the
+  rolling −1d…+60d window, busy-by-default upsert that never clobbers a user's `override`, full-sync
+  prune, the `event_writebacks` idempotency ledger). It dispatches by `calendars.provider` to a
+  `CalendarAdapter` (`src/lib/calendar/types.ts`, which also holds the shared `OAuthTokens` /
+  `MappedEvent` / `FetchResult` types). The old `src/lib/google/sync.ts` was deleted; its callers
+  (`actions/calendars`, `actions/proposals`, the cron route, the Google callback) now import from
+  `@/lib/calendar/sync`.
+- **Google = an adapter** — `src/lib/google/adapter.ts` wraps the *unchanged* `oauth.ts` +
+  `calendar.ts` helpers, so the verified Google read+write path is byte-for-byte the same logic.
+- **Microsoft = the new adapter** — `src/lib/microsoft/{oauth,calendar,adapter}.ts` over Microsoft
+  Graph: `calendarView/delta` (recurring series pre-expanded like Google's `singleEvents=true`;
+  `@odata.deltaLink` is the syncToken analog stored in `sync_cursor`; HTTP 410 → full resync),
+  `Prefer: outlook.timezone="UTC"` to normalize times, busy-by-default `showAs` mapping
+  (`free`/`workingElsewhere` → free, everything else busy), first Outlook **category** →
+  `events.category` for per-category overrides, and `events.create` write-back (sends the UTC
+  instant). OAuth: v2.0 endpoints, `offline_access` for the refresh token (which Microsoft rotates),
+  `Calendars.ReadWrite` + `User.Read`, optional `MICROSOFT_TENANT` (default `common`).
+- **Wiring** — new `connectMicrosoft` action + `/api/calendars/microsoft/callback` route (added to
+  proxy `PUBLIC_PATHS`); the `/calendars` page shows both Connect buttons, each gated by
+  `googleConfigured()` / `microsoftConfigured()`, with a provider-agnostic "not configured" notice.
+- **No migration** — the `calendars` / `events` / `category_overrides` tables and the
+  `calendar_provider` enum already accommodated `microsoft`. Pure app-layer + docs + tests.
+- **Env:** `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` (+ optional `MICROSOFT_TENANT`); absent
+  → the Connect-Microsoft button is simply omitted. Setup: `docs/MICROSOFT-SETUP.md`.
+- **Tests:** **54 unit + 87 integration (141)** green (+13 `microsoft.test.ts` OAuth-URL +
+  event-mapping; +1 integration proving the MS provider shares the RLS/RPC path). `tsc`, `eslint`,
+  `next build`, e2e all green (e2e run with calendar-provider env unset, as before).
+- ⚠️ **Live Microsoft OAuth round-trip is NOT yet verified** — no Azure app registered yet. The
+  deterministic pieces are tested; consent → code exchange → first sync → write-back is the remaining
+  manual check (`docs/MICROSOFT-SETUP.md §5`), exactly like Google's was before someone ran it live.
+
+**Next: Phase 7 (visual design) — gated on product input; do not start without the owner's
+direction.** Other pre-launch work (OAuth verification, deploy) is owner-driven in `PRE-LAUNCH.md`.
+
+---
+
 **Phase 5 (launch readiness & UX polish) is COMPLETE and tested (2026-06-04).** Built on branch
 `feature/phase-5` (off `main` @ `24ced09`, which has P1–P4 via PR #7). Phases 5–7 were added to the
 roadmap after P1–P4 shipped (see `docs/SPEC.md` Roadmap): P5 here, **P6 Microsoft Calendar** next,
@@ -36,8 +77,9 @@ roadmap after P1–P4 shipped (see `docs/SPEC.md` Roadmap): P5 here, **P6 Micros
   Google env unset, as before). ⚠️ Live realtime *delivery* (websocket subscribe → receive) is a
   manual check, like Web Push — the deterministic auth boundary is what's unit/integration-tested.
 
-**Next: Phase 6 (Microsoft Calendar).** Re-skin `src/lib/google/*` → `src/lib/microsoft/*`; the
-`calendars` / `events` / `category_overrides` tables and `calendar_provider` enum already accommodate it.
+**Next: Phase 6 (Microsoft Calendar).** *(Done — see the TL;DR at the top. Note: the eventual build
+extracted a provider-agnostic sync layer + a `CalendarAdapter` seam rather than a flat
+`google/*`→`microsoft/*` re-skin, which kept one tested orchestration path for both providers.)*
 
 ---
 

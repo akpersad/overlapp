@@ -169,12 +169,17 @@ User ──┬── connects calendars (Google / Apple / Outlook)
 - Supabase `get_advisors` review + full QA (tests / `tsc` / `eslint` / `next build`).
 - *(Deploy, Google OAuth verification, and DNS remain owner-driven — see `PRE-LAUNCH.md`.)*
 
-### Phase 6 — Microsoft Calendar
+### Phase 6 — Microsoft Calendar ✅ *(built)*
 *Goal: finish the calendar-provider set's next entry — the architectural twin of Google.*
 - Microsoft Graph / Outlook OAuth (calendar-access flow, not login).
 - Busy-by-default import + the same per-event / per-category free/blocked overrides.
 - Background re-sync + write-back, reusing the `calendars` / `events` / `category_overrides` tables
-  (`calendar_provider` enum already has `microsoft`). Re-skin of `src/lib/google/*` → `src/lib/microsoft/*`.
+  (`calendar_provider` enum already has `microsoft`).
+- **Built as a provider-agnostic sync layer** (`src/lib/calendar/sync.ts` + a `CalendarAdapter`
+  seam), not a `google/*`→`microsoft/*` copy: one orchestrator dispatches by `provider` to the
+  Google adapter (`src/lib/google/adapter.ts`, helpers unchanged) and the new Microsoft adapter
+  (`src/lib/microsoft/*`, Graph `calendarView/delta` + `events.create`). No DB migration needed.
+  Live Microsoft OAuth round-trip not yet verified — see `docs/MICROSOFT-SETUP.md §5`.
 
 ### Phase 7 — Visual design pass  ⬅️ *gated on product input before build*
 *Goal: execute `DESIGN-PRINCIPLES.md` — heatmap-as-hero, one accent, colourblind-safe, anti-AI-slop.*

@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { OAuthTokens } from "@/lib/calendar/types";
+
 // Google OAuth 2.0 — calendar connection (NOT login). The user is already
 // signed in (email/password); this is a standalone authorization-code flow that
 // grants read-only calendar access and yields a refresh token so the
@@ -28,12 +30,7 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
 ];
 
-export type GoogleTokens = {
-  accessToken: string;
-  refreshToken: string | null;
-  expiresAt: string; // ISO timestamptz
-  scope: string | null;
-};
+export type GoogleTokens = OAuthTokens;
 
 function clientId(): string {
   const v = process.env.GOOGLE_CLIENT_ID;

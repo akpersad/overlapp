@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { syncDueCalendars } from "@/lib/google/sync";
+import { syncDueCalendars } from "@/lib/calendar/sync";
 
 // Background re-sync. Pulls fresh events for every calendar that's gone stale,
 // keeping each group's heatmap current without anyone opening the app

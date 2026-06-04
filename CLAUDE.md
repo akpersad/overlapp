@@ -162,8 +162,31 @@ the broadcast authorization boundary + that triggers don't break writes); `tsc`/
 build`/e2e green. ⚠️ Live realtime *delivery* (websocket subscribe → receive) is a manual check, like
 Web Push — the deterministic auth boundary is tested instead.
 
-**Next: Phase 6 (Microsoft Calendar) — the architectural twin of Google.** Phase 7 (visual design)
-is **gated on product input** and lands last. Other pre-launch work (OAuth verification, deploy) is
-owner-driven in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
+**Phase 6 (Microsoft Calendar) is COMPLETE and tested (2026-06-04).** The architectural twin of
+Google, built by **extracting a provider-agnostic sync layer** rather than copy-pasting: the
+stateful orchestration (token refresh, windowed/incremental pull, busy-by-default upsert that never
+clobbers the user's override, full-sync prune, write-back) now lives in `src/lib/calendar/sync.ts`
+(`saveConnection`/`syncCalendar`/`syncDueCalendars`/`writeBackProposal`) and dispatches by `provider`
+to a `CalendarAdapter` (`src/lib/calendar/types.ts`). Google was refactored into
+`src/lib/google/adapter.ts` (its `oauth.ts`/`calendar.ts` helpers unchanged — same verified path);
+Microsoft is the new `src/lib/microsoft/{oauth,calendar,adapter}.ts` using **Microsoft Graph**:
+`calendarView/delta` (recurring series pre-expanded like Google's `singleEvents`; `@odata.deltaLink`
+= the syncToken analog stored in `sync_cursor`; 410 → full resync), `Prefer: outlook.timezone="UTC"`,
+busy-by-default `showAs` mapping (`free`/`workingElsewhere` → free), first Outlook category →
+`category` for per-category overrides, and `events.create` write-back (UTC instant). New action
+`connectMicrosoft` + route `/api/calendars/microsoft/callback` (added to proxy `PUBLIC_PATHS`); the
+`/calendars` page shows both connect buttons gated by `googleConfigured()`/`microsoftConfigured()`.
+**No migration needed** — the `calendars`/`events`/`category_overrides` tables and the
+`calendar_provider` enum already had `microsoft`. Env: `MICROSOFT_CLIENT_ID/SECRET` (+ optional
+`MICROSOFT_TENANT`, default `common`); absent → the Connect-Microsoft button is just omitted. Setup:
+[`docs/MICROSOFT-SETUP.md`](docs/MICROSOFT-SETUP.md). **Tests: 54 unit + 87 integration (141)** green
+(+13 `microsoft.test.ts` OAuth-URL + event-mapping, +1 integration proving the MS provider shares the
+DB path); `tsc`/`eslint`/`next build`/e2e green. ⚠️ The **live Microsoft OAuth round-trip is NOT yet
+verified** against a real account (no Azure app registered yet) — the deterministic pieces are tested;
+consent → code exchange → sync is the remaining manual check (`docs/MICROSOFT-SETUP.md §5`).
+
+**Next: Phase 7 (visual design) — gated on product input; do not start without the owner's
+direction** (references, accent, tone — see `DESIGN-PRINCIPLES.md`). Other pre-launch work (OAuth
+verification, deploy) is owner-driven in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
 [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md). Verify the live push round-trip against a production
 build + installed PWA once deployed (it can't be exercised by `next dev` or the e2e suite).

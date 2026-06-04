@@ -4,14 +4,32 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fetchAccountEmail, refreshAccessToken, type GoogleTokens } from "./oauth";
-import {
-  fetchCalendarEvents,
-  insertCalendarEvent,
-  type MappedEvent,
-} from "./calendar";
+import { googleAdapter } from "@/lib/google/adapter";
+import { microsoftAdapter } from "@/lib/microsoft/adapter";
+import type {
+  CalendarAdapter,
+  MappedEvent,
+  OAuthTokens,
+  SyncableProvider,
+} from "./types";
 
 type Admin = SupabaseClient<Database>;
+
+// Provider-agnostic calendar-sync orchestrator. The per-provider seams (OAuth,
+// event mapping, REST) live in {google,microsoft}/adapter.ts; everything
+// stateful (DB, token persistence, idempotency, the rolling window) is here, so
+// Google and Microsoft share one battle-tested sync path.
+
+const ADAPTERS: Record<SyncableProvider, CalendarAdapter> = {
+  google: googleAdapter,
+  microsoft: microsoftAdapter,
+};
+
+// Resolve a syncable adapter, or null for a provider we don't sync yet
+// (apple_caldav / ics).
+function adapterFor(provider: string): CalendarAdapter | null {
+  return (ADAPTERS as Record<string, CalendarAdapter | undefined>)[provider] ?? null;
+}
 
 // Rolling sync window. We don't care about the distant past, and the heatmap
 // only looks a few weeks ahead, so a small window keeps pulls cheap.
@@ -32,14 +50,16 @@ function windowBounds(): { timeMin: string; timeMax: string } {
   };
 }
 
-// Persist a freshly-authorized Google connection: the calendar row (metadata)
-// + its secret tokens. Returns the calendar id. Run with the service role.
-export async function saveGoogleConnection(
+// Persist a freshly-authorized connection: the calendar row (metadata) + its
+// secret tokens. Returns the calendar id. Run with the service role.
+export async function saveConnection(
   admin: Admin,
   userId: string,
-  tokens: GoogleTokens,
+  provider: SyncableProvider,
+  tokens: OAuthTokens,
 ): Promise<string> {
-  const email = await fetchAccountEmail(tokens.accessToken);
+  const adapter = ADAPTERS[provider];
+  const email = await adapter.fetchAccountEmail(tokens.accessToken);
   const providerAccount = email ?? "primary";
 
   const { data: calendar, error: calErr } = await admin
@@ -47,9 +67,9 @@ export async function saveGoogleConnection(
     .upsert(
       {
         user_id: userId,
-        provider: "google",
+        provider,
         provider_account: providerAccount,
-        display_name: email ? `Google (${email})` : "Google Calendar",
+        display_name: email ? `${adapter.label} (${email})` : `${adapter.label} Calendar`,
         sync_state: "ok",
         sync_cursor: null, // force a full sync on first pull
         last_error: null,
@@ -75,6 +95,7 @@ export async function saveGoogleConnection(
 // Ensure a non-expired access token, refreshing (and persisting) if needed.
 async function ensureAccessToken(
   admin: Admin,
+  adapter: CalendarAdapter,
   calendarId: string,
   secret: {
     access_token: string;
@@ -90,13 +111,14 @@ async function ensureAccessToken(
   if (!secret.refresh_token) {
     throw new Error("reauth_required");
   }
-  const refreshed = await refreshAccessToken(secret.refresh_token);
+  const refreshed = await adapter.refreshAccessToken(secret.refresh_token);
   await admin
     .from("calendar_secrets")
     .update({
       access_token: refreshed.accessToken,
       token_expires_at: refreshed.expiresAt,
-      // Google rarely re-issues a refresh token; keep the existing one if not.
+      // Google rarely re-issues a refresh token; Microsoft rotates it. Keep the
+      // existing one only if the provider didn't return a new one.
       refresh_token: refreshed.refreshToken ?? secret.refresh_token,
       scope: refreshed.scope ?? undefined,
     })
@@ -106,7 +128,7 @@ async function ensureAccessToken(
 
 // Apply a fetched batch: delete cancelled events, upsert the rest (WITHOUT the
 // override column so a user's per-event override survives), and — on a full
-// sync — prune rows in the window that Google no longer returns.
+// sync — prune rows in the window the provider no longer returns.
 async function applyEvents(
   admin: Admin,
   userId: string,
@@ -146,7 +168,7 @@ async function applyEvents(
   }
 
   if (fullSync) {
-    // Remove events in-window that Google no longer lists (deleted upstream).
+    // Remove events in-window the provider no longer lists (deleted upstream).
     const keep = live.map((e) => e.provider_event_id);
     let prune = admin
       .from("events")
@@ -168,7 +190,7 @@ async function applyEvents(
 }
 
 // Sync one calendar end-to-end. Idempotent. Marks sync_state along the way so
-// the UI can show progress/errors. Used by the connect callback, "Sync now",
+// the UI can show progress/errors. Used by the connect callbacks, "Sync now",
 // and the background cron.
 export async function syncCalendar(calendarId: string): Promise<SyncResult> {
   const admin = createAdminClient();
@@ -179,7 +201,9 @@ export async function syncCalendar(calendarId: string): Promise<SyncResult> {
     .eq("id", calendarId)
     .single();
   if (calErr || !calendar) return { ok: false, error: "calendar_not_found" };
-  if (calendar.provider !== "google") return { ok: false, error: "unsupported_provider" };
+
+  const adapter = adapterFor(calendar.provider);
+  if (!adapter) return { ok: false, error: "unsupported_provider" };
 
   const { data: secret, error: secErr } = await admin
     .from("calendar_secrets")
@@ -197,11 +221,11 @@ export async function syncCalendar(calendarId: string): Promise<SyncResult> {
   await admin.from("calendars").update({ sync_state: "syncing" }).eq("id", calendarId);
 
   try {
-    const accessToken = await ensureAccessToken(admin, calendarId, secret);
+    const accessToken = await ensureAccessToken(admin, adapter, calendarId, secret);
     const window = windowBounds();
 
     let fullSync = !calendar.sync_cursor;
-    let result = await fetchCalendarEvents(accessToken, {
+    let result = await adapter.fetchCalendarEvents(accessToken, {
       timeMin: window.timeMin,
       timeMax: window.timeMax,
       syncToken: calendar.sync_cursor,
@@ -210,7 +234,7 @@ export async function syncCalendar(calendarId: string): Promise<SyncResult> {
     // Stale sync token → start over with a full windowed pull.
     if (result.syncTokenExpired) {
       fullSync = true;
-      result = await fetchCalendarEvents(accessToken, {
+      result = await adapter.fetchCalendarEvents(accessToken, {
         timeMin: window.timeMin,
         timeMax: window.timeMax,
         syncToken: null,
@@ -254,9 +278,9 @@ export async function syncCalendar(calendarId: string): Promise<SyncResult> {
 // ----------------------------------------------------------------------------
 // Write-back (Phase 3). When a proposal is locked, push the chosen slot into the
 // real calendar of every active member who opted in (calendars.writeback_enabled
-// + a writable Google connection). Idempotent via the event_writebacks ledger,
-// best-effort per member (one member's failure never blocks the rest). Run with
-// the service role from the lockProposal Server Action.
+// + a writable, syncable connection). Idempotent via the event_writebacks
+// ledger, best-effort per member (one member's failure never blocks the rest).
+// Run with the service role from the lockProposal Server Action.
 // ----------------------------------------------------------------------------
 export type WritebackResult = {
   written: number;
@@ -305,17 +329,23 @@ export async function writeBackProposal(
       continue;
     }
 
-    // A writable, non-revoked Google calendar the member opted in for.
+    // A writable, non-revoked syncable calendar the member opted in for.
     const { data: calendar } = await admin
       .from("calendars")
-      .select("id")
+      .select("id, provider")
       .eq("user_id", member.user_id)
-      .eq("provider", "google")
+      .in("provider", Object.keys(ADAPTERS) as SyncableProvider[])
       .eq("writeback_enabled", true)
       .neq("sync_state", "revoked")
       .limit(1)
       .maybeSingle();
     if (!calendar) {
+      result.skipped++;
+      continue;
+    }
+
+    const adapter = adapterFor(calendar.provider);
+    if (!adapter) {
       result.skipped++;
       continue;
     }
@@ -331,8 +361,8 @@ export async function writeBackProposal(
     }
 
     try {
-      const accessToken = await ensureAccessToken(admin, calendar.id, secret);
-      const providerEventId = await insertCalendarEvent(accessToken, {
+      const accessToken = await ensureAccessToken(admin, adapter, calendar.id, secret);
+      const providerEventId = await adapter.insertCalendarEvent(accessToken, {
         summary: proposal.title,
         description: proposal.description,
         startsAt: option.starts_at,

@@ -1,5 +1,12 @@
 import "server-only";
 
+import type {
+  FetchOpts,
+  FetchResult,
+  InsertEventInput,
+  MappedEvent,
+} from "@/lib/calendar/types";
+
 // Google Calendar API v3 — read the primary calendar's events and map them into
 // our `events` shape. We request `singleEvents=true` so recurring events arrive
 // pre-expanded as concrete instances (our `events` rows are concrete; RRULE
@@ -17,20 +24,6 @@ export type GoogleEvent = {
   eventType?: string; // 'default' | 'outOfOffice' | 'focusTime' | 'workingLocation' | 'fromGmail'
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
-};
-
-// What sync.ts upserts. `override` is deliberately absent so an upsert never
-// clobbers the user's per-event override (DATA-MODEL §6). `cancelled` rows are
-// deletions to apply, not upserts.
-export type MappedEvent = {
-  provider_event_id: string;
-  title: string | null;
-  starts_at: string;
-  ends_at: string;
-  is_all_day: boolean;
-  provider_busy: boolean;
-  category: string | null;
-  cancelled: boolean;
 };
 
 // Pure mapping (unit-tested). Returns null for events we can't place on a
@@ -84,13 +77,7 @@ export function mapGoogleEvent(g: GoogleEvent): MappedEvent | null {
 // "insufficient_scope" on 403 so the caller can prompt a reconnect.
 export async function insertCalendarEvent(
   accessToken: string,
-  ev: {
-    summary: string;
-    description?: string | null;
-    startsAt: string; // ISO
-    endsAt: string; // ISO
-    timeZone?: string | null;
-  },
+  ev: InsertEventInput,
 ): Promise<string> {
   const start: Record<string, string> = { dateTime: ev.startsAt };
   const end: Record<string, string> = { dateTime: ev.endsAt };
@@ -122,20 +109,12 @@ export async function insertCalendarEvent(
   return json.id;
 }
 
-export type FetchResult = {
-  events: MappedEvent[];
-  nextSyncToken: string | null;
-  // True when Google returned 410 GONE — the sync token expired and the caller
-  // must do a fresh full sync.
-  syncTokenExpired: boolean;
-};
-
 // Pull events, following pagination to the end (Google only returns
 // nextSyncToken on the final page). Incremental when `syncToken` is set; a full
 // windowed pull otherwise.
 export async function fetchCalendarEvents(
   accessToken: string,
-  opts: { timeMin?: string; timeMax?: string; syncToken?: string | null },
+  opts: FetchOpts,
 ): Promise<FetchResult> {
   const events: MappedEvent[] = [];
   let pageToken: string | undefined;
