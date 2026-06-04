@@ -27,8 +27,9 @@ the **local** stack (`npm run db:start` → `npm run db:reset` → `npm run test
 test:e2e`). After any migration: `npm run db:reset` + regenerate DB types. Never run against the
 hosted project.
 
-**Soft-delete TODO (caught by tests):** a direct `UPDATE deleted_at` is blocked by RLS, so group
-dissolution needs a `SECURITY DEFINER` RPC — build it with group management (`DATA-MODEL.md §9-E`).
+**Soft-delete (was a TODO, now RESOLVED):** a direct `UPDATE deleted_at` is blocked by RLS, so
+group dissolution goes through the `dissolve_group(uuid)` `SECURITY DEFINER` RPC
+(`…_create_group_management_rpcs`; `DATA-MODEL.md §9-E`). Covered by `group-management.test.ts`.
 
 ## Why this handoff exists
 
@@ -46,8 +47,9 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
 - **⚠️ Next.js 16 caveat:** This Next.js has breaking changes vs. training-data knowledge
   (see `AGENTS.md`). **Read `node_modules/next/dist/docs/` before writing app code** — esp.
   async `cookies()`/`headers()` and middleware patterns, which matter for `@supabase/ssr`.
-- **Git:** repo at `overlapp/`. `main` has the foundation + groups work merged (PRs #1, #2).
-  Invites work is committed on branch **`feature/invites`** (not yet pushed/PR'd).
+- **Git:** repo at `overlapp/`. `main` has foundation + groups + invites merged (PRs #1, #2, #3).
+  **All Phase 1 work (DB availability/management layer + the full app UI) is committed on branch
+  `feature/phase-1-complete`** — one commit, not yet pushed or PR'd (awaiting the user's go-ahead).
 - **Supabase project ref:** `qildwjcnzyejgjvnyohi` (Americas region). Security settings:
   Data API ON, auto-expose-new-tables OFF, automatic-RLS ON (new tables get RLS auto-enabled →
   every table needs explicit grants + policies in its migration or it's deny-all).
@@ -59,9 +61,9 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
 - `docs/DATA-MODEL.md` — **finalized** Postgres/Supabase schema, RLS posture, build order (§12).
   Locked decisions: RRULE recurrence · Vault server-only OAuth tokens · soft-delete (`deleted_at`)
   · on-the-fly heatmap RPC for P1 · email mirrored into `profiles` via signup trigger.
-- `docs/DESIGN-PRINCIPLES.md` — anti-AI-slop UI guardrails. **Visual design DEFERRED** until
-  after P1's core loop works. Sketch/reference-first; heatmap is the hero; one accent color;
-  color must survive colorblindness.
+- `docs/DESIGN-PRINCIPLES.md` — anti-AI-slop UI guardrails. Visual design was deferred until P1's
+  core loop worked; that gate has **now cleared**, so a deliberate design pass is unblocked.
+  Sketch/reference-first; heatmap is the hero; one accent color; color must survive colorblindness.
 - `docs/EMAIL-SETUP.md` + `docs/email-templates/*.html` — Resend auth email.
 
 ### Infra
@@ -98,15 +100,14 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
   `client.ts` (browser), `server.ts` (async-`cookies()` server client), `database.types.ts`
   (generated — regenerate after every migration). 
 - **`src/proxy.ts`** — Next 16 renamed `middleware`→`proxy` (`export function proxy`, **Node
-  runtime only**, `getAll`/`setAll` cookie pattern). Refreshes the session + gates routes: only
-  `/` and the future auth/invite paths are public; others redirect to `/login` (not built yet).
-  NOTE: proxy is **not** a hard security boundary — RLS + per-action auth checks are. 
-- **Starter cleanup:** `layout.tsx` metadata (was "Create Next App") and the `globals.css` Arial
-  override (was clobbering Geist) fixed.
-- **Verified:** `tsc --noEmit` clean; `next build` green and shows `ƒ Proxy (Middleware)`.
-- Known cosmetic warning: `next build` reports multiple lockfiles (a stray
-  `package-lock.json` one dir up in `PersonalProjects/`). Not ours; silence later via
-  `turbopack.root` if it becomes annoying.
+  runtime only**, `getAll`/`setAll` cookie pattern). Refreshes the session + gates routes; public
+  prefixes: `/`, `/login`, `/signup`, `/verify-email`, `/auth`, `/invite` (all now built).
+  NOTE: proxy is **not** a hard security boundary — RLS + per-action auth checks are.
+- **Starter cleanup:** `layout.tsx` metadata and the `globals.css` Arial override fixed (done in
+  the first slice); landing `page.tsx` rewritten as the real marketing page.
+- **Verified:** `tsc --noEmit`, `eslint`, and `next build` all green.
+- The multiple-lockfiles `next build` warning is silenced via `turbopack.root` in
+  `next.config.ts` (also sets `allowedDevOrigins: ['127.0.0.1']` for the Playwright dev server).
 
 ### Phase 1 — migrations since the first slice
 
@@ -114,22 +115,42 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
   trigger, owner-auto-membership, `SECURITY DEFINER` membership helpers, full RLS.
 - **`group_invites` + `pending_invites`** (`20260604003050_create_invites`): token-link invites,
   `get_invite_preview`/`redeem_group_invite` RPCs, email normaliser, `handle_new_user()` auto-join.
+- **`manual_blocks`** (`20260604032458`): owner-only RLS, RRULE column, time-order check.
+- **availability RPCs** (`20260604032606`): `expand_block_occurrences` (RRULE expander, UTC-pinned,
+  bounded iteration; supports FREQ DAILY/WEEKLY/MONTHLY + INTERVAL/COUNT/UNTIL/BYDAY),
+  `my_busy_intervals` (SECURITY INVOKER), de-identified `group_busy_intervals` (member-gated, no
+  label — the privacy boundary), on-the-fly `group_heatmap` (member-gated, everyone-free flag,
+  45-day window cap).
+- **group management RPCs** (`20260604032639`): `dissolve_group` (the §9-E soft-delete write path),
+  `transfer_group_ownership`, and a `guard_member_role` trigger enforcing the single-owner /
+  no-direct-owner-promotion invariant.
+- **`pending_member_visibility`** (`20260604032655`): self-row SELECT policy on `group_members` +
+  an any-status `has_group_membership()` group SELECT policy, so a pending member sees the group
+  (and the post-redeem redirect resolves) but still gets no member availability.
 
-Both are detailed (with the bugs their tests caught) in **NEXT STEPS** below, marked DONE.
+All four were applied via the Supabase MCP to the hosted project and saved as files whose
+timestamps match the recorded ledger versions. `get_advisors` (security) shows only the intentional
+`security_definer_function_executable` WARNs.
 
-## Committed in this slice
+### Phase 1 — application UI (complete)
 
-The previously-orphaned dep additions (`supabase` devDep, `@supabase/supabase-js`,
-`@supabase/ssr`) are now committed together with the Phase 1 code above — no longer dangling.
+Full app under `src/app/` (Next 16 App Router, Server Actions, `@supabase/ssr`):
+- **Public:** landing (`page.tsx`), `login`, `signup`, `verify-email`, `auth/confirm` (email-OTP
+  route handler), `invite/[token]` (public preview via `get_invite_preview` + redeem).
+- **Authenticated** (route group `(app)`, shell in `(app)/layout.tsx` with `AppNav`): `onboarding`,
+  `profile`, `dashboard`, `groups/new`, `groups/[id]` (heatmap + members + invites + approvals +
+  dissolve/leave/transfer), `groups/[id]/edit`, `availability` (block editor).
+- **Shared:** Server Actions in `src/lib/actions/{auth,groups,profile,blocks}.ts`; DAL
+  `src/lib/auth.ts` (`getUser`/`requireUser`/`requireProfile`, React-`cache`d); pure helpers
+  `src/lib/{format,rrule,ui}.ts`; components `src/components/{AppNav,AuthCard,Avatar,LocalTime}.tsx`.
+- **Heatmap** (`groups/[id]/heatmap.tsx`, client): weekly grid in viewer-local time, single-hue
+  intensity ramp + free-count text (colourblind-safe), week nav, queries `group_heatmap`.
+- **Invites** use the **Web Share API** (native share sheet) with clipboard fallback.
 
-## NEXT STEPS (in order) — start here
+## Phase 1 build log (all DONE)
 
-Steps 1–3 (confirm MCP, `profiles` migration, `@supabase/ssr` + proxy scaffold) are **DONE** — see
-"Phase 1 — application code" above. Step 1 below (`groups` + `group_members`) is also **DONE**
-(migrations `20260603210859_create_groups_and_members` + `20260603211217_fix_membership_helper_grants`;
-enums, 15-cap trigger, owner-auto-membership trigger, `SECURITY DEFINER` membership helpers that
-break RLS recursion, full RLS, co-member profile-read policy; verified by a transactional smoke
-test; advisors clean). Continue from step 2:
+Every step of the `DATA-MODEL.md §12` build order shipped. Kept here as the decision/bug record;
+**there is nothing left to do in Phase 1 — start Phase 2** (see TL;DR).
 
 1. ~~**`groups` + `group_members`** migration (`DATA-MODEL.md §3`): two tables, the enums
    (`member_role`, `member_status`, `join_control`), the **15-member-cap** trigger, and RLS
@@ -169,15 +190,22 @@ add a new one.
 
 ## Open decisions / reminders
 
-- Visual design is deliberately deferred — don't build polished UI yet; structure first, per
-  `DESIGN-PRINCIPLES.md`. Functional/unstyled-but-usable is fine for P1.
-- Auth method: email+password first; Google OAuth login is optional/later (also doubles as
-  calendar consent in P2). Resend prod email depends on DMARC landing.
-- ~~Fix starter leftovers (`layout.tsx` metadata, `globals.css` Arial override)~~ — DONE.
+- **Visual design** was deferred until P1's core loop worked — it now does, so a proper design
+  pass (per `DESIGN-PRINCIPLES.md`: sketch-first, heatmap-as-hero, one accent, colourblind-safe) is
+  now **unblocked**. Current UI is intentionally functional/minimal Tailwind, not the final look.
+- **Auth:** email+password is built. Google OAuth login is still optional/later (doubles as
+  calendar consent in P2). Local Supabase has `enable_confirmations = false` (signups auto-confirm,
+  which is what e2e relies on); **prod will confirm by email** — the `/auth/confirm` route + the
+  `verify-email` page handle that path, and Resend prod email depends on DMARC landing.
+- **Account deletion UI** (spec §8: delete account → transfer/dissolve owned groups) is not built;
+  the `transfer_group_ownership` + `dissolve_group` RPCs it needs already exist. Avatar **upload**
+  isn't built either (initials avatar only) — both are small follow-ups, not P1 blockers.
+- **PWA** (installable manifest, service worker, Web Push) is **Phase 4**, not done.
 - MCP write mode = convenience + prompt-injection risk on the dev DB. No real user data yet, so
   acceptable; revisit before production.
 
 ## Persistent memory
 
-A user-level memory note (`overlapp-project`) already mirrors this state and loads automatically
-in new sessions. This file is the in-repo, more detailed version.
+This in-repo file (plus `CLAUDE.md`) is the authoritative, detailed handoff — read it first.
+(If a user-level `overlapp-project` memory note exists from an earlier session, treat this file as
+the source of truth where they disagree.)

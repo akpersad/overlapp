@@ -1,8 +1,10 @@
 # Overlapp — Design Principles & Anti-Slop Guardrails
 
-> Status: living doc · Created 2026-06-03
-> Purpose: We are deferring *visual* design until after Phase 1's data model and core loop.
-> This doc banks the principles **now** so that when we design, we design deliberately —
+> Status: living doc · Created 2026-06-03 · Updated 2026-06-04
+> Purpose: We deferred *visual* design until after Phase 1's data model and core loop. **That gate
+> has now cleared — Phase 1 is built and working** (current UI is intentionally functional/minimal
+> Tailwind), so a deliberate visual-design pass is unblocked whenever we choose to take it.
+> This doc banks the principles so that when we design, we design deliberately —
 > from references and intent — instead of accepting the model's statistically-average defaults.
 >
 > Source inspiration: "5 AI Website Design Tips for Distinctive Websites" (unpromptable.substack.com),

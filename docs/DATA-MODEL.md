@@ -229,9 +229,10 @@ strategy is the main open question (§9-A).
     filters `deleted_at is null`, an owner/admin **cannot** soft-delete via a direct
     `UPDATE … SET deleted_at = …` — PostgreSQL requires an UPDATE's resulting row to still
     satisfy the SELECT policy, so the row would update itself out of visibility and the write is
-    rejected (42501). **Soft-delete / dissolution must go through a `SECURITY DEFINER` RPC**
-    (which sets `deleted_at`, handles owner transfer-vs-dissolve, and bypasses RLS). To be built
-    with group management. See `docs/TESTING.md` → Findings.
+    rejected (42501). **Soft-delete / dissolution goes through a `SECURITY DEFINER` RPC** —
+    **built (2026-06-04):** `dissolve_group(uuid)` (owner-only) sets `deleted_at`; ownership moves
+    via `transfer_group_ownership(uuid, uuid)`. Migration `…_create_group_management_rpcs`; covered
+    by `group-management.test.ts`. See `docs/TESTING.md` → Findings.
 
 ## 10. Proposals (multi-date scheduling)  *(P3 — included for a coherent whole)*
 

@@ -1,8 +1,9 @@
 # Overlapp — Product Spec
 
-> Status: Draft v2 · Last updated 2026-06-03
+> Status: Draft v2 · Last updated 2026-06-04
 > All product decisions are settled. The **data model is finalized** — see
-> [`DATA-MODEL.md`](DATA-MODEL.md). Next step is building **Phase 1**.
+> [`DATA-MODEL.md`](DATA-MODEL.md). **Phase 1 is built and tested** (see `docs/HANDOFF.md`); the
+> next build target is **Phase 2 (calendar sync)**.
 
 ## The problem
 
