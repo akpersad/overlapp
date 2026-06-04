@@ -50,9 +50,11 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
 - **Git:** repo at `overlapp/`. `main` has foundation + groups + invites merged (PRs #1, #2, #3).
   **All Phase 1 work (DB availability/management layer + the full app UI) is committed on branch
   `feature/phase-1-complete`** — one commit, not yet pushed or PR'd (awaiting the user's go-ahead).
-- **Supabase project ref:** `qildwjcnzyejgjvnyohi` (Americas region). Security settings:
-  Data API ON, auto-expose-new-tables OFF, automatic-RLS ON (new tables get RLS auto-enabled →
-  every table needs explicit grants + policies in its migration or it's deny-all).
+- **Supabase project ref:** `qildwjcnzyejgjvnyohi` (Americas region). ⚠️ **This is the PRODUCTION
+  project — there is no separate dev project.** Always develop + test against the **local** stack
+  first (`db:reset` + full suite green) before applying anything here. Security settings: Data API
+  ON, auto-expose-new-tables OFF, automatic-RLS ON (new tables get RLS auto-enabled → every table
+  needs explicit grants + policies in its migration or it's deny-all).
 
 ## What's DONE
 
@@ -201,8 +203,10 @@ add a new one.
   the `transfer_group_ownership` + `dissolve_group` RPCs it needs already exist. Avatar **upload**
   isn't built either (initials avatar only) — both are small follow-ups, not P1 blockers.
 - **PWA** (installable manifest, service worker, Web Push) is **Phase 4**, not done.
-- MCP write mode = convenience + prompt-injection risk on the dev DB. No real user data yet, so
-  acceptable; revisit before production.
+- **MCP write mode is enabled against the PRODUCTION DB** (convenience + prompt-injection risk).
+  No real user data yet, but treat every MCP `apply_migration`/`execute_sql` as a production change:
+  test locally first, prefer reversible DDL, and consider switching the MCP server to read-only
+  (or spinning up a separate dev project / branch) before real users land.
 
 ## Persistent memory
 

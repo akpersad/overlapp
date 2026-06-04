@@ -32,7 +32,7 @@ to drive that UI as real users and screenshot it.
 ## Local Supabase (the integration/e2e backend)
 
 Integration and (future) e2e tests run against a **local** Supabase stack via Docker — never the
-hosted dev/prod project. The stack is isolated and resettable; migrations in
+hosted (production) project. The stack is isolated and resettable; migrations in
 `supabase/migrations/` are applied to it with `db reset`.
 
 ```bash

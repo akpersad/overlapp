@@ -43,8 +43,10 @@ P4 PWA polish (installable, push, offline, recurring).
 Spec complete; all product decisions settled. **Data model finalized** — see
 [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md). Design principles banked in
 [`docs/DESIGN-PRINCIPLES.md`](docs/DESIGN-PRINCIPLES.md) (visual design deferred until after
-P1's core loop). **Infra done:** Supabase project provisioned (Data API on, auto-expose off,
-automatic RLS on); `.env.local` populated with Supabase URL + anon key; Resend auth email wired
+P1's core loop). **Infra done:** Supabase **production** project provisioned (ref
+`qildwjcnzyejgjvnyohi`; no separate dev project — always test against the local stack first) with
+Data API on, auto-expose off, automatic RLS on; `.env.local` populated with Supabase URL + anon
+key; Resend auth email wired
 via custom SMTP + branded templates ([`docs/EMAIL-SETUP.md`](docs/EMAIL-SETUP.md)).
 
 **Phase 1 is COMPLETE and tested (2026-06-04).** Full core loop end-to-end: auth
