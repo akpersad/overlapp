@@ -78,6 +78,14 @@ test("Phase 1 core loop: signup → group → availability → heatmap → invit
   await expect(page.getByText("Work")).toBeVisible();
   await page.screenshot({ path: "screenshots/07-availability.png", fullPage: true });
 
+  // 7b. Calendars page — Google isn't configured in the e2e env, so the page
+  // renders the "not configured" notice rather than the Connect button.
+  await page.getByRole("link", { name: "Calendars", exact: true }).click();
+  await page.waitForURL("**/calendars");
+  await expect(page.getByRole("heading", { name: /^calendars$/i })).toBeVisible();
+  await expect(page.getByText(/isn.t configured on this server/i)).toBeVisible();
+  await page.screenshot({ path: "screenshots/07b-calendars.png", fullPage: true });
+
   // 8. Heatmap reflects availability
   await page.goto(groupUrl);
   await expect(page.getByText(/1 member/)).toBeVisible();

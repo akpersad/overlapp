@@ -65,12 +65,25 @@ intentional `security_definer_function_executable` WARNs): `profiles`, `groups`+
 = the §9-E soft-delete write path · `transfer_group_ownership` · a role-integrity guard), and
 **`pending_member_visibility`**.
 
-**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **16 unit + 41 integration (57)** green, plus a
+**Phase 2 (calendar sync) is COMPLETE and tested (2026-06-04)**, plus the remaining P1 follow-ups
+(avatar upload + account deletion). New: Google Calendar OAuth (calendar-access flow, not login),
+busy-by-default import with a server-side sync worker, per-event + per-category free/blocked
+overrides, and a `CRON_SECRET`-protected background re-sync route. The availability RPCs now fold
+synced events (overrides applied) into manual blocks. DB: `calendars`, `calendar_secrets`
+(service-role-only token store), `events`, `category_overrides` + the `effective_event_busy_intervals`
+helper. App: `/calendars` page, `src/lib/google/{oauth,calendar,sync}.ts`, `src/lib/supabase/admin.ts`,
+`/api/calendars/google/callback`, `/api/cron/sync-calendars`. **Setup:** [`docs/GOOGLE-SETUP.md`](docs/GOOGLE-SETUP.md)
+(needs `GOOGLE_CLIENT_ID/SECRET`, `CRON_SECRET`; absent → Calendars page shows a "not configured" notice).
+
+**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **27 unit + 53 integration (80)** green, plus a
 **Playwright e2e/visual** layer (`npm run test:e2e`) driving the whole loop as a user against the
 local stack (screenshots reviewed then deleted). `tsc`, `eslint`, `next build` all green. Scripts:
 `test`, `test:unit`, `test:integration`, `test:e2e`, `db:start`/`db:reset`/`db:stop`.
 
-**Next: Phase 2** — Google Calendar OAuth + import (busy-by-default), free/blocked overrides
-(per-event + per-category), background re-sync (`DATA-MODEL.md §6`).
-Migrations go through the Supabase MCP **and** as files in `supabase/migrations/` (filenames must
-match the remote ledger version so `supabase db push` won't replay them).
+**Migrations applied LOCALLY only so far** (3 new: calendar tables, availability-RPC extension,
+avatars bucket). They are **not yet applied to the hosted PRODUCTION project** — apply via the
+Supabase MCP `apply_migration` after review (filenames already match the timestamp scheme so
+`supabase db push` won't replay), then regenerate `database.types.ts`. The live Google OAuth
+round-trip needs real credentials (manual verification per `GOOGLE-SETUP.md §5`).
+
+**Next: Phase 3** — multi-date proposals, nudges, quorum, calendar write-back (`DATA-MODEL.md §10`).

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { LocalTime } from "@/components/LocalTime";
 import { deleteBlock } from "@/lib/actions/blocks";
 import { requireUser } from "@/lib/auth";
@@ -27,7 +29,11 @@ export default async function AvailabilityPage() {
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Block out time you&apos;re not free. This feeds every group&apos;s
           heatmap — others only see{" "}
-          <em>when</em> you&apos;re busy, never the label.
+          <em>when</em> you&apos;re busy, never the label. Want it filled in
+          automatically?{" "}
+          <Link href="/calendars" className="text-indigo-600 hover:underline">
+            Connect a calendar →
+          </Link>
         </p>
       </div>
 

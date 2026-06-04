@@ -5,6 +5,34 @@
 
 ## TL;DR — where we are
 
+**Phase 2 (calendar sync) is COMPLETE and tested (2026-06-04)**, along with the remaining P1
+follow-ups (avatar upload + account deletion). Built this session:
+- **Google Calendar OAuth** — a standalone *calendar-access* flow (NOT login): `connectGoogle()`
+  → consent (`access_type=offline&prompt=consent`) → `/api/calendars/google/callback` exchanges
+  the code, stores tokens in **`calendar_secrets`** (service-role-only; never client-readable,
+  §9-C), writes a **`calendars`** metadata row, and runs a first sync.
+- **Sync worker** (`src/lib/google/{oauth,calendar,sync}.ts` + `src/lib/supabase/admin.ts`):
+  refreshes tokens, pulls `calendar.readonly` events for a −1d…+60d window (`singleEvents=true`),
+  **upserts** into **`events`** *without* clobbering the user's `override`. Incremental via
+  Google `syncToken` (`calendars.sync_cursor`); 410 → full resync.
+- **Overrides** — per-event + per-category (**`category_overrides`**) free/blocked. Effective busy
+  = event override → category rule → `provider_busy`, resolved in the **extended availability RPCs**
+  (new `effective_event_busy_intervals` helper folded into `my_busy_intervals` /
+  `group_busy_intervals` / `group_heatmap` — same signatures, so the heatmap UI was unchanged).
+- **Background re-sync** — `/api/cron/sync-calendars`, `CRON_SECRET`-bearer-protected (Vercel Cron
+  or any pinger). **`/calendars` page** drives connect/disconnect/sync-now + the override toggles.
+- **P1 follow-ups** — avatar upload (public `avatars` storage bucket + owner-scoped RLS) and
+  account deletion (dissolves owned groups + deletes the auth user via the service role).
+- **Setup:** [`docs/GOOGLE-SETUP.md`](GOOGLE-SETUP.md). Without `GOOGLE_CLIENT_ID/SECRET` the
+  Calendars page shows a "not configured" notice and the rest of the app is unaffected.
+
+**Migrations are applied LOCALLY only** (3 new files; `db:reset` clean, types regenerated). They
+are **NOT yet on the hosted PRODUCTION project** — apply via Supabase MCP `apply_migration` after
+review, then regenerate types. The live Google OAuth round-trip needs real credentials (manual
+check, `GOOGLE-SETUP.md §5`). **Next: Phase 3** (multi-date proposals — `DATA-MODEL.md §10`).
+
+---
+
 **Phase 1 is COMPLETE and tested (2026-06-04).** The full core loop works end-to-end: auth
 (signup/login/verify/logout), onboarding, profile, dashboard, group create/edit/manage, the
 invite flow (Web Share token links + email-keyed pending invites + public preview + redeem),
@@ -16,11 +44,10 @@ management RPCs (`dissolve_group` = the §9-E soft-delete write path, `transfer_
 a role-integrity guard), and a `pending_member_visibility` fix. Security advisors: only the
 intentional `security_definer_function_executable` WARNs.
 
-**Next: Phase 2** — Google Calendar OAuth + import (busy-by-default), the free/blocked override
-system (per-event + per-category), background re-sync. See `DATA-MODEL.md §6` (calendars/events/
-category_overrides) and the spec roadmap.
+**Next: Phase 3** — multi-date proposals, nudges, quorum, calendar write-back (`DATA-MODEL.md §10`).
+(Phase 2 calendar sync is done — see the TL;DR above and `docs/GOOGLE-SETUP.md`.)
 
-**Testing.** `docs/TESTING.md` is the durable strategy: **16 unit + 41 integration (57) green**,
+**Testing.** `docs/TESTING.md` is the durable strategy: **27 unit + 53 integration (80) green**,
 plus a **Playwright e2e/visual layer** (`npm run test:e2e`) that drives the whole loop as a user,
 screenshots every screen, and deletes the screenshots after review. Run integration/e2e against
 the **local** stack (`npm run db:start` → `npm run db:reset` → `npm run test` / `npm run
@@ -199,9 +226,9 @@ add a new one.
   calendar consent in P2). Local Supabase has `enable_confirmations = false` (signups auto-confirm,
   which is what e2e relies on); **prod will confirm by email** — the `/auth/confirm` route + the
   `verify-email` page handle that path, and Resend prod email depends on DMARC landing.
-- **Account deletion UI** (spec §8: delete account → transfer/dissolve owned groups) is not built;
-  the `transfer_group_ownership` + `dissolve_group` RPCs it needs already exist. Avatar **upload**
-  isn't built either (initials avatar only) — both are small follow-ups, not P1 blockers.
+- **Account deletion UI** and **avatar upload** are now **built** (this session). Deletion
+  dissolves owned groups + deletes the auth user via the service role (profile page → Danger zone);
+  avatar upload uses the public `avatars` storage bucket with owner-scoped RLS.
 - **PWA** (installable manifest, service worker, Web Push) is **Phase 4**, not done.
 - **MCP write mode is enabled against the PRODUCTION DB** (convenience + prompt-injection risk).
   No real user data yet, but treat every MCP `apply_migration`/`execute_sql` as a production change:

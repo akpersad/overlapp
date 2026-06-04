@@ -34,6 +34,180 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_secrets: {
+        Row: {
+          access_token: string
+          calendar_id: string
+          refresh_token: string | null
+          scope: string | null
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          calendar_id: string
+          refresh_token?: string | null
+          scope?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          calendar_id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_secrets_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: true
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendars: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          last_error: string | null
+          last_synced_at: string | null
+          provider: Database["public"]["Enums"]["calendar_provider"]
+          provider_account: string | null
+          sync_cursor: string | null
+          sync_state: Database["public"]["Enums"]["sync_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          provider: Database["public"]["Enums"]["calendar_provider"]
+          provider_account?: string | null
+          sync_cursor?: string | null
+          sync_state?: Database["public"]["Enums"]["sync_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          provider?: Database["public"]["Enums"]["calendar_provider"]
+          provider_account?: string | null
+          sync_cursor?: string | null
+          sync_state?: Database["public"]["Enums"]["sync_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendars_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_overrides: {
+        Row: {
+          category: string
+          created_at: string
+          state: Database["public"]["Enums"]["override_state"]
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          state: Database["public"]["Enums"]["override_state"]
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          state?: Database["public"]["Enums"]["override_state"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_overrides_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          calendar_id: string
+          category: string | null
+          ends_at: string
+          id: string
+          is_all_day: boolean
+          override: Database["public"]["Enums"]["override_state"] | null
+          provider_busy: boolean
+          provider_event_id: string
+          starts_at: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calendar_id: string
+          category?: string | null
+          ends_at: string
+          id?: string
+          is_all_day?: boolean
+          override?: Database["public"]["Enums"]["override_state"] | null
+          provider_busy?: boolean
+          provider_event_id: string
+          starts_at: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calendar_id?: string
+          category?: string | null
+          ends_at?: string
+          id?: string
+          is_all_day?: boolean
+          override?: Database["public"]["Enums"]["override_state"] | null
+          provider_busy?: boolean
+          provider_event_id?: string
+          starts_at?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_invites: {
         Row: {
           created_at: string
@@ -311,6 +485,13 @@ export type Database = {
     }
     Functions: {
       dissolve_group: { Args: { p_group_id: string }; Returns: undefined }
+      effective_event_busy_intervals: {
+        Args: { p_from: string; p_to: string; p_user_id: string }
+        Returns: {
+          ends_at: string
+          starts_at: string
+        }[]
+      }
       expand_block_occurrences: {
         Args: {
           p_end: string
@@ -383,9 +564,12 @@ export type Database = {
       }
     }
     Enums: {
+      calendar_provider: "google" | "microsoft" | "apple_caldav" | "ics"
       join_control: "open" | "approval"
       member_role: "owner" | "admin" | "member"
       member_status: "active" | "pending"
+      override_state: "free" | "blocked"
+      sync_status: "ok" | "syncing" | "error" | "revoked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -516,9 +700,12 @@ export const Constants = {
   },
   public: {
     Enums: {
+      calendar_provider: ["google", "microsoft", "apple_caldav", "ics"],
       join_control: ["open", "approval"],
       member_role: ["owner", "admin", "member"],
       member_status: ["active", "pending"],
+      override_state: ["free", "blocked"],
+      sync_status: ["ok", "syncing", "error", "revoked"],
     },
   },
 } as const
