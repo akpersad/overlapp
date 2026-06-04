@@ -6,14 +6,15 @@
 ## TL;DR — where we are
 
 Product spec and data model are **finalized**. Backend infra (Supabase project, Resend auth
-email, Supabase MCP server) is **set up**. **Phase 1 is underway:** `profiles` and
-`groups`+`group_members` migrations are applied (with RLS, triggers, and two follow-up bug-fix
-migrations), the `@supabase/ssr` client layer + `src/proxy.ts` session/route gate are scaffolded,
-and a **test harness is in place** (Vitest unit + integration against a local Supabase stack;
-see `docs/TESTING.md`). The repo is no longer the stock starter. The immediate next task is the
-**`group_invites` + `pending_invites`** migration (continuing the `DATA-MODEL.md §12` order).
+email, Supabase MCP server) is **set up**. **Phase 1 is underway:** `profiles`,
+`groups`+`group_members`, and `group_invites`+`pending_invites` migrations are applied (with RLS,
+triggers, RPCs, and follow-up bug-fix migrations), the `@supabase/ssr` client layer +
+`src/proxy.ts` session/route gate are scaffolded, and a **test harness is in place** (Vitest unit
++ integration against a local Supabase stack; see `docs/TESTING.md`). The repo is no longer the
+stock starter. The immediate next task is the **`manual_blocks`** migration (continuing the
+`DATA-MODEL.md §12` order), then busy-interval RPCs + heatmap, then the auth/group UI.
 
-**Testing.** `docs/TESTING.md` is the durable strategy: unit + integration now (16 tests green),
+**Testing.** `docs/TESTING.md` is the durable strategy: unit + integration now (28 tests green),
 Playwright visual/e2e once UI exists. Run integration tests against the **local** stack
 (`npm run db:start` then `npm run test`). After any migration: `npm run db:reset` + regenerate
 DB types. Don't run integration tests against the hosted project.
@@ -114,12 +115,24 @@ test; advisors clean). Continue from step 2:
 1. ~~**`groups` + `group_members`** migration (`DATA-MODEL.md §3`): two tables, the enums
    (`member_role`, `member_status`, `join_control`), the **15-member-cap** trigger, and RLS
    (members read; admins/owner write); unlocks the co-member profile-read policy.~~ **DONE.**
-2. **`group_invites` + `pending_invites`** (`§4`–`§5`): token-link invites, email-keyed pending
+2. ~~**`group_invites` + `pending_invites`** (`§4`–`§5`): token-link invites, email-keyed pending
    invites, the invite-preview `security definer` RPC, and **extend `handle_new_user()`** to
-   consume `pending_invites` on signup (the auto-join).
+   consume `pending_invites` on signup (the auto-join).~~ **DONE** — migration
+   `20260604003050_create_invites` (applied via MCP + file). Adds both tables with admin-managed
+   RLS; `get_invite_preview(token)` (SECURITY DEFINER, anon + authenticated — name/inviter/
+   member-count/join-policy only, no roster/availability; empty for revoked/expired/used-up);
+   `redeem_group_invite(token)` (SECURITY DEFINER, authenticated — open→active / approval→pending,
+   idempotent, `FOR UPDATE` + `use_count` bump, 15-cap still applies); a `lower(trim())` email
+   normaliser trigger; and `handle_new_user()` extended to consume matching `pending_invites` on
+   signup (per-group attempt wrapped so a full group's `check_violation` is skipped, never blocking
+   account creation). 12 integration tests added (`tests/integration/invites.test.ts`).
+   Advisor note: `get_invite_preview`/`redeem_group_invite` show WARN
+   `*_security_definer_function_executable` — **intentional** (client-callable RPCs), same accepted
+   pattern as the existing `is_group_*`/`shares_group_with` helpers.
 3. **`manual_blocks`** (`§7`) → **`my_busy_intervals` / `group_busy_intervals`** + **heatmap RPC**
-   (`§8`, on-the-fly per `§9-B`).
-4. Then the UI: auth (email+password first), group create/join, manual-block editor, heatmap.
+   (`§8`, on-the-fly per `§9-B`).  ← **START HERE**
+4. Then the UI: auth (email+password first), group create/join + **invite share/preview/redeem
+   flow** (token links via Web Share API; the RPCs above are ready), manual-block editor, heatmap.
 
 **Migration workflow reminder:** apply via Supabase MCP `apply_migration` **and** save a matching
 file in `supabase/migrations/` whose timestamp matches the version the ledger recorded (check with
