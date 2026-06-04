@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
     const calendarId = await saveGoogleConnection(admin, user.id, tokens);
     await syncCalendar(calendarId);
-  } catch {
+  } catch (err) {
+    console.error("[google-connect] failed:", err);
     return back("error=connect_failed");
   } finally {
     // One-shot state — clear it regardless of outcome.
