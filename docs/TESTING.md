@@ -32,7 +32,7 @@ to drive that UI as real users and screenshot it.
 ## Local Supabase (the integration/e2e backend)
 
 Integration and (future) e2e tests run against a **local** Supabase stack via Docker — never the
-hosted dev/prod project. The stack is isolated and resettable; migrations in
+hosted (production) project. The stack is isolated and resettable; migrations in
 `supabase/migrations/` are applied to it with `db reset`.
 
 ```bash
@@ -100,18 +100,28 @@ At the close of each phase:
    screenshots**.
 6. Update `docs/HANDOFF.md` with what was verified.
 
-## Current coverage (Phase 1 complete, as of 2026-06-04)
+## Current coverage (Phases 1 + 2 complete, as of 2026-06-04)
 
 - **Unit** (`npm run test:unit`): `config.test.ts` (env validation), `format.test.ts`
   (initials / display-name / avatar colour), `rrule.test.ts` (RRULE build/describe/parse
-  round-trips). **16 tests.**
+  round-trips), `google.test.ts` (OAuth consent-URL building + Google→`events` mapping:
+  busy-by-default, transparent/working-location → free, eventType→category, all-day spans,
+  cancellations, dropped rows), `service-role-grants.test.ts` (a **local/prod parity guard**:
+  statically asserts every table the service-role client writes to has an explicit
+  `grant … to service_role` in a migration — a live check can't catch this because the local
+  stack grants service_role implicitly). **35 tests.** (`server-only` is aliased to a stub —
+  `tests/_stubs/server-only.ts` — so server-only modules' pure logic is unit-testable.)
 - **Integration** (local stack): `profiles.test.ts` (signup trigger + profile RLS),
   `groups.test.ts` (owner auto-membership, 15-member cap, RLS, owner-protection, soft-delete
   read filter), `invites.test.ts` (token-link + pending-invite flows; now also pins
   pending-member visibility), `availability.test.ts` (manual_blocks owner-only RLS, RRULE
   expansion via `my_busy_intervals`, de-identified `group_busy_intervals`, `group_heatmap`
   everyone-free / counts / window-cap / member-gating), `group-management.test.ts`
-  (`dissolve_group`, `transfer_group_ownership`, role-integrity guard). **41 tests.**
+  (`dissolve_group`, `transfer_group_ownership`, role-integrity guard), `calendars.test.ts`
+  (calendars/events/category_overrides owner-only RLS, **`calendar_secrets` denied to the
+  client / readable only by the service role**, per-event + per-category override resolution
+  and precedence folded into `my_busy_intervals` / `group_busy_intervals` / `group_heatmap`).
+  **53 tests.**
 - **E2E + visual** (`npm run test:e2e`): `tests/e2e/core-loop.spec.ts` drives the full P1 loop
   as a real user against the LOCAL stack — landing → signup → onboarding → dashboard → create
   group → set availability → heatmap reflects it → public invite preview — screenshotting every

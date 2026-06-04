@@ -9,10 +9,16 @@ import { defineConfig } from "vitest/config";
 //                    real signed-in users, so it exercises triggers + policies
 //                    the way the app does. Requires `npm run db:start` first.
 const srcDir = fileURLToPath(new URL("./src", import.meta.url));
+// `server-only` throws if imported outside an RSC build; stub it so we can unit-
+// test server-only modules' pure logic (e.g. the Google OAuth/event mapping).
+const serverOnlyStub = fileURLToPath(
+  new URL("./tests/_stubs/server-only.ts", import.meta.url),
+);
+const sharedAlias = { "@": srcDir, "server-only": serverOnlyStub };
 
 export default defineConfig({
   resolve: {
-    alias: { "@": srcDir },
+    alias: sharedAlias,
   },
   test: {
     // Files never run in parallel — the integration project shares one local
@@ -20,7 +26,7 @@ export default defineConfig({
     fileParallelism: false,
     projects: [
       {
-        resolve: { alias: { "@": srcDir } },
+        resolve: { alias: sharedAlias },
         test: {
           name: "unit",
           environment: "node",
@@ -30,11 +36,14 @@ export default defineConfig({
           env: {
             NEXT_PUBLIC_SUPABASE_URL: "http://unit.test.local",
             NEXT_PUBLIC_SUPABASE_ANON_KEY: "unit-test-anon-key",
+            NEXT_PUBLIC_SITE_URL: "https://overlapp.test",
+            GOOGLE_CLIENT_ID: "test-client-id.apps.googleusercontent.com",
+            GOOGLE_CLIENT_SECRET: "test-client-secret",
           },
         },
       },
       {
-        resolve: { alias: { "@": srcDir } },
+        resolve: { alias: sharedAlias },
         test: {
           name: "integration",
           environment: "node",

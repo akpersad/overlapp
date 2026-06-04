@@ -5,6 +5,48 @@
 
 ## TL;DR — where we are
 
+**Phase 2 (calendar sync) is COMPLETE and tested (2026-06-04)**, along with the remaining P1
+follow-ups (avatar upload + account deletion). Built this session:
+- **Google Calendar OAuth** — a standalone *calendar-access* flow (NOT login): `connectGoogle()`
+  → consent (`access_type=offline&prompt=consent`) → `/api/calendars/google/callback` exchanges
+  the code, stores tokens in **`calendar_secrets`** (service-role-only; never client-readable,
+  §9-C), writes a **`calendars`** metadata row, and runs a first sync.
+- **Sync worker** (`src/lib/google/{oauth,calendar,sync}.ts` + `src/lib/supabase/admin.ts`):
+  refreshes tokens, pulls `calendar.readonly` events for a −1d…+60d window (`singleEvents=true`),
+  **upserts** into **`events`** *without* clobbering the user's `override`. Incremental via
+  Google `syncToken` (`calendars.sync_cursor`); 410 → full resync.
+- **Overrides** — per-event + per-category (**`category_overrides`**) free/blocked. Effective busy
+  = event override → category rule → `provider_busy`, resolved in the **extended availability RPCs**
+  (new `effective_event_busy_intervals` helper folded into `my_busy_intervals` /
+  `group_busy_intervals` / `group_heatmap` — same signatures, so the heatmap UI was unchanged).
+- **Background re-sync** — `/api/cron/sync-calendars`, `CRON_SECRET`-bearer-protected (Vercel Cron
+  or any pinger). **`/calendars` page** drives connect/disconnect/sync-now + the override toggles.
+- **P1 follow-ups** — avatar upload (public `avatars` storage bucket + owner-scoped RLS) and
+  account deletion (dissolves owned groups + deletes the auth user via the service role).
+- **Setup:** [`docs/GOOGLE-SETUP.md`](GOOGLE-SETUP.md). Without `GOOGLE_CLIENT_ID/SECRET` the
+  Calendars page shows a "not configured" notice and the rest of the app is unaffected.
+
+**Migrations are applied to BOTH local and the hosted PRODUCTION project** (5 new, ledger versions
+`20260604141324`→`145228`; local filenames match the remote ledger). The last one adds explicit
+`service_role` grants on server-written tables (calendars/events/groups) — the hosted project has
+auto-expose OFF, so those grants aren't implicit like they are locally (a parity gap now guarded by
+`tests/unit/service-role-grants.test.ts`). `get_advisors(security)` is
+clean except the intentional `security_definer_function_executable` WARNs and the intentional
+`calendar_secrets` RLS-enabled-no-policy INFO (service-role-only by design, §9-C). Applying tested
+migrations to the hosted project via MCP is now standing practice (test locally first).
+
+**The live Google OAuth round-trip is VERIFIED end-to-end against production (2026-06-04):** the
+user created a Web OAuth client, set `GOOGLE_CLIENT_ID/SECRET` in `.env.local`, and a real connect
+(consent → code exchange → tokens in `calendar_secrets` → first sync into `events`) landed on
+`/calendars?connected=1` with events synced. Two setup gotchas hit + documented in
+`GOOGLE-SETUP.md`: (1) testers must be added under the consent screen's **Test users** (else
+`Error 403: access_denied`); (2) the `calendar.readonly` scope is declared under **Data Access**.
+The `service_role`-grants fix above was found *because* of this live test (it 403'd until granted).
+
+**Next: Phase 3** (multi-date proposals — `DATA-MODEL.md §10`).
+
+---
+
 **Phase 1 is COMPLETE and tested (2026-06-04).** The full core loop works end-to-end: auth
 (signup/login/verify/logout), onboarding, profile, dashboard, group create/edit/manage, the
 invite flow (Web Share token links + email-keyed pending invites + public preview + redeem),
@@ -16,11 +58,10 @@ management RPCs (`dissolve_group` = the §9-E soft-delete write path, `transfer_
 a role-integrity guard), and a `pending_member_visibility` fix. Security advisors: only the
 intentional `security_definer_function_executable` WARNs.
 
-**Next: Phase 2** — Google Calendar OAuth + import (busy-by-default), the free/blocked override
-system (per-event + per-category), background re-sync. See `DATA-MODEL.md §6` (calendars/events/
-category_overrides) and the spec roadmap.
+**Next: Phase 3** — multi-date proposals, nudges, quorum, calendar write-back (`DATA-MODEL.md §10`).
+(Phase 2 calendar sync is done — see the TL;DR above and `docs/GOOGLE-SETUP.md`.)
 
-**Testing.** `docs/TESTING.md` is the durable strategy: **16 unit + 41 integration (57) green**,
+**Testing.** `docs/TESTING.md` is the durable strategy: **35 unit + 53 integration (88) green**,
 plus a **Playwright e2e/visual layer** (`npm run test:e2e`) that drives the whole loop as a user,
 screenshots every screen, and deletes the screenshots after review. Run integration/e2e against
 the **local** stack (`npm run db:start` → `npm run db:reset` → `npm run test` / `npm run
@@ -47,20 +88,28 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
 - **⚠️ Next.js 16 caveat:** This Next.js has breaking changes vs. training-data knowledge
   (see `AGENTS.md`). **Read `node_modules/next/dist/docs/` before writing app code** — esp.
   async `cookies()`/`headers()` and middleware patterns, which matter for `@supabase/ssr`.
-- **Git:** repo at `overlapp/`. `main` has foundation + groups + invites merged (PRs #1, #2, #3).
-  **All Phase 1 work (DB availability/management layer + the full app UI) is committed on branch
-  `feature/phase-1-complete`** — one commit, not yet pushed or PR'd (awaiting the user's go-ahead).
-- **Supabase project ref:** `qildwjcnzyejgjvnyohi` (Americas region). Security settings:
-  Data API ON, auto-expose-new-tables OFF, automatic-RLS ON (new tables get RLS auto-enabled →
-  every table needs explicit grants + policies in its migration or it's deny-all).
+- **Git:** repo at `overlapp/`. `main` is at `b26f8fb` (foundation + groups + invites + the full
+  Phase 1 app, PRs #1–#4). **All Phase 1 follow-ups + Phase 2 are committed on branch
+  `feature/phase-1-completion-and-phase-2`** (6 commits ahead of `main`) — **not yet pushed or
+  PR'd** (awaiting the user's go-ahead). The session's first move was un-committing a stray
+  docs-only commit off `main` and re-landing it on this branch.
+- **Supabase project ref:** `qildwjcnzyejgjvnyohi` (Americas region). ⚠️ **This is the PRODUCTION
+  project — there is no separate dev project.** Always develop + test against the **local** stack
+  first (`db:reset` + full suite green) before applying anything here. Security settings: Data API
+  ON, auto-expose-new-tables OFF, automatic-RLS ON (new tables get RLS auto-enabled → every table
+  needs explicit grants + policies in its migration or it's deny-all).
 
 ## What's DONE
 
 ### Documentation (all committed)
 - `docs/SPEC.md` — product spec (problem, decisions, journeys, roadmap). Source of truth.
 - `docs/DATA-MODEL.md` — **finalized** Postgres/Supabase schema, RLS posture, build order (§12).
-  Locked decisions: RRULE recurrence · Vault server-only OAuth tokens · soft-delete (`deleted_at`)
+  Locked decisions: RRULE recurrence · server-only OAuth tokens · soft-delete (`deleted_at`)
   · on-the-fly heatmap RPC for P1 · email mirrored into `profiles` via signup trigger.
+  (P2 implemented the §9-C **service-role-only** token store — `calendar_secrets` with no Data-API
+  grants — rather than Vault encryption-at-rest; Vault is a post-launch hardening item.)
+- `docs/GOOGLE-SETUP.md` — Google Calendar OAuth + sync setup (P2). `docs/POST-LAUNCH.md` —
+  non-MVP backlog, free-tier-first.
 - `docs/DESIGN-PRINCIPLES.md` — anti-AI-slop UI guardrails. Visual design was deferred until P1's
   core loop worked; that gate has **now cleared**, so a deliberate design pass is unblocked.
   Sketch/reference-first; heatmap is the hero; one accent color; color must survive colorblindness.
@@ -68,8 +117,11 @@ at startup, so a freshly-edited `.mcp.json` needs a restart.
 
 ### Infra
 - **Supabase project** provisioned (ref above).
-- **`.env.local`** populated by the user with `NEXT_PUBLIC_SUPABASE_URL` +
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY`. `.env.example` is the committed template. `.env*` is gitignored.
+- **`.env.local`** has `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` +
+  `SUPABASE_SERVICE_ROLE_KEY` (all pointing at the **hosted production** project — so `next dev`
+  reads/writes prod) and the Phase 2 `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`. `CRON_SECRET` is
+  not set locally (only needed for the deployed cron). `.env.example` is the committed template;
+  `.env*` is gitignored. NB: e2e/integration tests override the Supabase vars to the **local** stack.
 - **Resend auth email** wired: custom SMTP (`smtp.resend.com:465`, user `resend`, pass = API key),
   sending from `noreply@payroll.persadpay.com`. Branded templates in `docs/email-templates/`
   (user pastes into Supabase → Authentication → Emails → Templates).
@@ -197,12 +249,14 @@ add a new one.
   calendar consent in P2). Local Supabase has `enable_confirmations = false` (signups auto-confirm,
   which is what e2e relies on); **prod will confirm by email** — the `/auth/confirm` route + the
   `verify-email` page handle that path, and Resend prod email depends on DMARC landing.
-- **Account deletion UI** (spec §8: delete account → transfer/dissolve owned groups) is not built;
-  the `transfer_group_ownership` + `dissolve_group` RPCs it needs already exist. Avatar **upload**
-  isn't built either (initials avatar only) — both are small follow-ups, not P1 blockers.
+- **Account deletion UI** and **avatar upload** are now **built** (this session). Deletion
+  dissolves owned groups + deletes the auth user via the service role (profile page → Danger zone);
+  avatar upload uses the public `avatars` storage bucket with owner-scoped RLS.
 - **PWA** (installable manifest, service worker, Web Push) is **Phase 4**, not done.
-- MCP write mode = convenience + prompt-injection risk on the dev DB. No real user data yet, so
-  acceptable; revisit before production.
+- **MCP write mode is enabled against the PRODUCTION DB** (convenience + prompt-injection risk).
+  No real user data yet, but treat every MCP `apply_migration`/`execute_sql` as a production change:
+  test locally first, prefer reversible DDL, and consider switching the MCP server to read-only
+  (or spinning up a separate dev project / branch) before real users land.
 
 ## Persistent memory
 

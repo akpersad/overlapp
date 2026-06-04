@@ -26,6 +26,12 @@ const PUBLIC_PATHS = [
   "/verify-email",
   "/auth",
   "/invite",
+  // API routes that do their own auth and must not be redirected by the proxy:
+  //   • the cron re-sync endpoint authenticates via CRON_SECRET (no session);
+  //   • the Google OAuth callback verifies the session itself (and would lose
+  //     the ?code on a redirect).
+  "/api/cron",
+  "/api/calendars/google/callback",
 ];
 
 function isPublicPath(pathname: string): boolean {

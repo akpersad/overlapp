@@ -29,6 +29,12 @@ export function AppNav({ profile }: { profile: Tables<"profiles"> }) {
           >
             Availability
           </Link>
+          <Link
+            href="/calendars"
+            className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Calendars
+          </Link>
         </div>
         <div className="flex items-center gap-3">
           <form action={signOut}>
