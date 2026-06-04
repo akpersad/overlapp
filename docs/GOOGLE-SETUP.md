@@ -119,9 +119,11 @@ OAuth requires real Google credentials, so the live round-trip is a manual check
 **Status: ✅ read sync verified end-to-end against the production Supabase project
 on 2026-06-04.** The Phase 3 **`calendar.events`** (write-back) scope was added to
 the consent screen's **Data Access** on **2026-06-04**, so new connections request
-and grant it — but the live **lock → write-back** round-trip is **not yet verified**
-end-to-end (it needs a fresh reconnect to pick up the write scope, then a locked
-proposal). Read-sync repro:
+and grant it. **Write-back is VERIFIED against production (2026-06-04):** after a
+reconnect granted `calendar.events`, the server write path (token refresh + Google
+`events.insert` against the stored credentials) created a real event in the
+calendar. The only unexercised step is driving it through the UI (lock a proposal
+with **Write-back on**), which calls that same verified path. Read-sync repro:
 
 1. Fill in the env above (use a Google account added under **Test users**).
 2. `npm run dev` and open `http://localhost:3000`. Sign up / log in → **Calendars**

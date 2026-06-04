@@ -27,8 +27,12 @@ branch `feature/phase-3-proposals` (off `main` @ `40a76cc`, which now has P1+P2 
   Console → Data Access (done by the user, 2026-06-04)**, so new connections request + grant it.
   ⚠️ **Pre-P3 connections still hold read-only tokens — they must disconnect + reconnect** to grant
   write access (else write-back fails with `insufficient_scope`; the Calendars page surfaces a
-  reconnect hint). The live lock→write-back round-trip against a real calendar is **not yet
-  verified end-to-end** (the OAuth/scope setup is in place; a real reconnect + lock would confirm it).
+  reconnect hint). **VERIFIED against production (2026-06-04):** after the user reconnected
+  (granting `calendar.events`), the exact server write path — token refresh + Google
+  `events.insert` against the stored credentials — created a real event in their calendar. The
+  full in-app *lock → writeBackProposal* orchestration (which also writes the `event_writebacks`
+  ledger row) reuses that same verified call; driving it through the UI is the only remaining
+  manual check.
 - **Tests:** `tests/integration/proposals.test.ts` (12) covers the RPCs + RLS + quorum heatmap; the
   service-role parity guard now lists `notifications` + `event_writebacks`. **39 unit + 65
   integration (104)** green; `tsc`/`eslint`/`next build` green; e2e green (run with Google env unset).
