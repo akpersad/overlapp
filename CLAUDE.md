@@ -77,10 +77,30 @@ helper. App: `/calendars` page, `src/lib/google/{oauth,calendar,sync}.ts`, `src/
 `/api/calendars/google/callback`, `/api/cron/sync-calendars`. **Setup:** [`docs/GOOGLE-SETUP.md`](docs/GOOGLE-SETUP.md)
 (needs `GOOGLE_CLIENT_ID/SECRET`, `CRON_SECRET`; absent → Calendars page shows a "not configured" notice).
 
-**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **35 unit + 53 integration (88)** green, plus a
+**Phase 3 (multi-date proposals) is COMPLETE and tested (2026-06-04).** Members seed candidate
+slots → the group marks availability per option (pre-filled from general availability via
+`suggest_proposal_rsvps`) → `proposal_results` computes the overlap + a quorum verdict → the
+proposer/admin locks the final slot → optional **write-back** pushes it to each opted-in member's
+Google calendar. Plus **quorum** in the heatmap ("good enough" slots, outlined not recoloured —
+colourblind-safe) and in-app **notifications + nudges** (no push — that's P4). DB: `proposals` +
+`proposal_options` + `proposal_responses` (+ `create_proposal`/`proposal_results`/`lock_proposal`/
+`cancel_proposal`/`suggest_proposal_rsvps` RPCs + `proposal_group_id`/`can_manage_proposal`
+helpers), `notifications`, `event_writebacks` (write-back idempotency ledger), `calendars.writeback_enabled`,
+and `group_heatmap` extended with `quorum`/`meets_quorum`. App: `/groups/[id]/proposals/new` +
+`/groups/[id]/proposals/[proposalId]`, `/notifications` (inbox + nav badge), `src/lib/actions/{proposals,notifications}.ts`,
+`src/lib/notifications.ts`, `writeBackProposal` + `insertCalendarEvent` in `src/lib/google/`.
+⚠️ Write-back needs the writable `calendar.events` scope (in `GOOGLE_SCOPES`; **declared in the
+Google Console → Data Access on 2026-06-04**). Pre-P3 connections hold read-only tokens and must
+disconnect + reconnect to grant write access (`docs/GOOGLE-SETUP.md`). **The Google write path
+(token refresh + `events.insert`) is VERIFIED against production (2026-06-04)** — a real event was
+created in the reconnected account; only the in-app lock→UI round-trip remains as a manual check.
+
+**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **39 unit + 65 integration (104)** green, plus a
 **Playwright e2e/visual** layer (`npm run test:e2e`) driving the whole loop as a user against the
 local stack (screenshots reviewed then deleted). `tsc`, `eslint`, `next build` all green. Scripts:
 `test`, `test:unit`, `test:integration`, `test:e2e`, `db:start`/`db:reset`/`db:stop`.
+(NB: the e2e calendars step asserts the "not configured" notice, so run e2e with
+`GOOGLE_CLIENT_ID`/`SECRET` unset — they're set in `.env.local` for the live round-trip.)
 
 **Migrations applied to BOTH local and the hosted PRODUCTION project via the Supabase MCP**
 (5 new, ledger versions `20260604141324`→`145228`: calendar tables, availability-RPC extension,
@@ -94,4 +114,11 @@ Google OAuth round-trip is VERIFIED end-to-end against production** (2026-06-04)
 consent → token exchange → first sync into `events` → `/calendars?connected=1`. (Google setup
 gotchas — Test users + Data Access scopes — are documented in `GOOGLE-SETUP.md`.)
 
-**Next: Phase 3** — multi-date proposals, nudges, quorum, calendar write-back (`DATA-MODEL.md §10`).
+**Phase 3 migrations applied to BOTH local and the hosted PRODUCTION project via MCP** (4 new,
+ledger versions `20260604154425`→`154507`: `create_proposals`, `heatmap_quorum`,
+`create_notifications`, `calendar_writeback`; local filenames match the remote ledger).
+`get_advisors(security)` clean except the same intentional WARNs (the new RPCs add the expected
+`security_definer_function_executable` WARNs — same accepted pattern as the existing group RPCs).
+
+**Next: Phase 4** — PWA polish (installable manifest, service worker, **Web Push** for
+proposals/nudges, offline group-calendar view, recurring hangouts).

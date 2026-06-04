@@ -28,11 +28,17 @@ intervals), never event titles. Tokens live in `calendar_secrets`
 3. **APIs & Services → OAuth consent screen** (newer console: **Google Auth
    Platform**): configure it (External is fine for testing).
    - **Data Access** (older UI: the "Scopes" step) → **Add or remove scopes** →
-     add `openid`, `…/auth/userinfo.email`, and `…/auth/calendar.readonly`. If
-     `calendar.readonly` isn't listed, paste it into "Manually add scopes". The
+     add `openid`, `…/auth/userinfo.email`, `…/auth/calendar.readonly`, and
+     **`…/auth/calendar.events`** (the writable scope that powers Phase 3
+     **write-back** — pushing a locked proposal onto each opted-in member's real
+     calendar). If a scope isn't listed, paste it into "Manually add scopes". The
      setup *wizard may skip this step* — add it here afterward. **Note:** the app
      also requests these at runtime, so a connect can work before they're
      declared, but declaring them is required before going public.
+     ⚠️ **Reconnect needed for write-back:** calendars connected before Phase 3
+     only granted `calendar.readonly`. Write-back will fail with
+     `insufficient_scope` (the Calendars page shows a "reconnect" hint) until the
+     user disconnects and reconnects to grant `calendar.events`.
    - **Audience → Test users** → add every Google account you'll test with.
      ⚠️ While the app is in "Testing", a non-listed account gets
      **`Error 403: access_denied` ("Overlapp has not completed the Google
@@ -110,8 +116,14 @@ safe. Cron only runs on a deployed Vercel app — it does nothing locally / in
 ## 5. Verifying locally
 
 OAuth requires real Google credentials, so the live round-trip is a manual check.
-**Status: ✅ verified end-to-end against the production Supabase project on
-2026-06-04.** To repeat it:
+**Status: ✅ read sync verified end-to-end against the production Supabase project
+on 2026-06-04.** The Phase 3 **`calendar.events`** (write-back) scope was added to
+the consent screen's **Data Access** on **2026-06-04**, so new connections request
+and grant it. **Write-back is VERIFIED against production (2026-06-04):** after a
+reconnect granted `calendar.events`, the server write path (token refresh + Google
+`events.insert` against the stored credentials) created a real event in the
+calendar. The only unexercised step is driving it through the UI (lock a proposal
+with **Write-back on**), which calls that same verified path. Read-sync repro:
 
 1. Fill in the env above (use a Google account added under **Test users**).
 2. `npm run dev` and open `http://localhost:3000`. Sign up / log in → **Calendars**
@@ -119,6 +131,11 @@ OAuth requires real Google credentials, so the live round-trip is a manual check
    screen → Advanced → continue).
 3. You should land on `/calendars?connected=1` with your events listed (Free/Busy
    badges + override dropdowns) and each group's heatmap reflecting real busy time.
+4. **Write-back:** toggle **Write-back on** for the calendar, create + lock a
+   proposal in a group, and confirm the event appears in the real Google calendar.
+   A calendar connected *before* the scope was added must **Disconnect + reconnect**
+   first (otherwise its token is read-only and write-back fails with
+   `insufficient_scope`).
 
 > **Which Supabase does `next dev` hit?** It reads `.env.local`, which points at
 > the **hosted production** project — so a local connect writes real rows to prod.

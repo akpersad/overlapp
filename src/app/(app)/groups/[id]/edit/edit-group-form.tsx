@@ -12,6 +12,7 @@ type Group = {
   description: string | null;
   slot_minutes: number;
   join_policy: "open" | "approval";
+  quorum: number | null;
 };
 
 export function EditGroupForm({ group }: { group: Group }) {
@@ -74,6 +75,25 @@ export function EditGroupForm({ group }: { group: Group }) {
             <option value="approval">Approval required</option>
           </select>
         </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="quorum" className={label}>
+          Quorum <span className="text-zinc-400">(how many free counts as &ldquo;good enough&rdquo;)</span>
+        </label>
+        <input
+          id="quorum"
+          name="quorum"
+          type="number"
+          min={1}
+          max={15}
+          defaultValue={group.quorum ?? ""}
+          placeholder="Everyone"
+          className={input}
+        />
+        <p className="text-xs text-zinc-500">
+          Leave blank to require everyone. Set e.g. 4 to highlight slots where at
+          least 4 members are free.
+        </p>
       </div>
       {state?.error && <p className={errorText}>{state.error}</p>}
       <div className="flex gap-3">

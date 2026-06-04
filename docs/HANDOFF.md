@@ -5,6 +5,44 @@
 
 ## TL;DR — where we are
 
+**Phase 3 (multi-date proposals) is COMPLETE and tested (2026-06-04).** Built this session on the
+branch `feature/phase-3-proposals` (off `main` @ `40a76cc`, which now has P1+P2 via PR #5):
+- **Proposals** — a member seeds candidate slots (`/groups/[id]/proposals/new`); the group marks
+  yes/no/maybe per option, **pre-filled** from their general availability (`suggest_proposal_rsvps`,
+  SECURITY INVOKER); `proposal_results` computes the per-option overlap tally + a **quorum** verdict;
+  the proposer/admin **locks** the final slot (`lock_proposal`) or **cancels** it. DB: `proposals` +
+  `proposal_options` + `proposal_responses` with member-read / proposer-or-admin-write / self-response
+  RLS, the `proposal_group_id` + `can_manage_proposal` definer helpers, and the `create_proposal`
+  RPC (atomic insert of proposal + options).
+- **Quorum** — `groups.quorum` (null = everyone) now drives `group_heatmap` (extended with
+  `quorum`/`meets_quorum` columns — drop+recreate) and the heatmap UI outlines "good enough" slots
+  (a shape cue, not a second hue → colourblind-safe). Editable on group create/edit.
+- **Notifications + nudges** — in-app only (Web Push is P4). `notifications` table, written
+  server-side via the service role (`src/lib/notifications.ts`) on proposal create/lock/cancel and
+  the proposer's "nudge non-responders" action. `/notifications` inbox + an unread badge in `AppNav`.
+- **Calendar write-back** — opt-in per calendar (`calendars.writeback_enabled`). On lock,
+  `writeBackProposal` (service role) pushes the chosen slot to each opted-in member's Google calendar
+  (`insertCalendarEvent`), idempotent via the `event_writebacks` ledger, best-effort per member.
+  The writable `calendar.events` scope is in `GOOGLE_SCOPES` **and has been declared in the Google
+  Console → Data Access (done by the user, 2026-06-04)**, so new connections request + grant it.
+  ⚠️ **Pre-P3 connections still hold read-only tokens — they must disconnect + reconnect** to grant
+  write access (else write-back fails with `insufficient_scope`; the Calendars page surfaces a
+  reconnect hint). **VERIFIED against production (2026-06-04):** after the user reconnected
+  (granting `calendar.events`), the exact server write path — token refresh + Google
+  `events.insert` against the stored credentials — created a real event in their calendar. The
+  full in-app *lock → writeBackProposal* orchestration (which also writes the `event_writebacks`
+  ledger row) reuses that same verified call; driving it through the UI is the only remaining
+  manual check.
+- **Tests:** `tests/integration/proposals.test.ts` (12) covers the RPCs + RLS + quorum heatmap; the
+  service-role parity guard now lists `notifications` + `event_writebacks`. **39 unit + 65
+  integration (104)** green; `tsc`/`eslint`/`next build` green; e2e green (run with Google env unset).
+- **Migrations:** 4 applied to local **and** hosted via MCP (`20260604154425`→`154507`).
+  `get_advisors(security)` clean except the same intentional WARNs.
+
+**Next: Phase 4** — PWA polish (installable, Web Push for proposals/nudges, offline, recurring).
+
+---
+
 **Phase 2 (calendar sync) is COMPLETE and tested (2026-06-04)**, along with the remaining P1
 follow-ups (avatar upload + account deletion). Built this session:
 - **Google Calendar OAuth** — a standalone *calendar-access* flow (NOT login): `connectGoogle()`

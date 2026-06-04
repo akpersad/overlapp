@@ -79,6 +79,24 @@ export async function setEventOverride(formData: FormData): Promise<void> {
   revalidatePath("/calendars");
 }
 
+// Toggle write-back for a calendar (Phase 3). The owner opts in to having
+// locked proposal events pushed here. Column-level grant limits the update to
+// writeback_enabled; RLS scopes it to the owner.
+export async function setCalendarWriteback(formData: FormData): Promise<void> {
+  await requireUser();
+  const id = String(formData.get("calendar_id") ?? "");
+  const enabled = String(formData.get("enabled") ?? "") === "true";
+  if (!id) return;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("calendars")
+    .update({ writeback_enabled: enabled })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/calendars");
+}
+
 // Set or remove a per-category override.
 export async function setCategoryOverride(formData: FormData): Promise<void> {
   const user = await requireUser();

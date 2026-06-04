@@ -2,8 +2,8 @@
 
 > Status: Draft v2 · Last updated 2026-06-04
 > All product decisions are settled. The **data model is finalized** — see
-> [`DATA-MODEL.md`](DATA-MODEL.md). **Phases 1 and 2 are built and tested** (see `docs/HANDOFF.md`
-> and `docs/GOOGLE-SETUP.md`); the next build target is **Phase 3 (multi-date proposals)**.
+> [`DATA-MODEL.md`](DATA-MODEL.md). **Phases 1, 2 and 3 are built and tested** (see `docs/HANDOFF.md`
+> and `docs/GOOGLE-SETUP.md`); the next build target is **Phase 4 (PWA polish)**.
 
 ## The problem
 
