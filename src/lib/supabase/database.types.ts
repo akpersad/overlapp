@@ -829,6 +829,7 @@ export type Database = {
     }
     Functions: {
       can_manage_proposal: { Args: { p_proposal_id: string }; Returns: boolean }
+      can_read_group_broadcast: { Args: { p_topic: string }; Returns: boolean }
       cancel_proposal: { Args: { p_proposal_id: string }; Returns: undefined }
       create_proposal: {
         Args: {

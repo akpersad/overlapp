@@ -5,6 +5,42 @@
 
 ## TL;DR — where we are
 
+**Phase 5 (launch readiness & UX polish) is COMPLETE and tested (2026-06-04).** Built on branch
+`feature/phase-5` (off `main` @ `24ced09`, which has P1–P4 via PR #7). Phases 5–7 were added to the
+roadmap after P1–P4 shipped (see `docs/SPEC.md` Roadmap): P5 here, **P6 Microsoft Calendar** next,
+**P7 visual design** last (gated on product input). Three P5 deliverables:
+- **Public legal pages** — `/privacy` + `/terms` in route group `src/app/(legal)/` (shared chrome in
+  `layout.tsx`, shared bits in `ui.tsx`), added to the proxy `PUBLIC_PATHS`, linked from the landing
+  footer. Cover what we collect, the free/busy-only model, **Google Limited Use**, retention +
+  account deletion, and a contact email (`CONTACT_EMAIL` in `ui.tsx` is a placeholder — confirm a
+  real monitored mailbox before going public; flagged in `PRE-LAUNCH.md`).
+- **Realtime heatmap** — AFTER triggers call `realtime.send` with a **group-id-only** payload (never
+  event data) to a **private** per-group topic `group-availability:<id>` whenever manual_blocks /
+  events / category_overrides / group_members / groups change. Receiving is authorized by a
+  `realtime.messages` SELECT policy → `public.can_read_group_broadcast(topic)` → `is_group_member`,
+  so only active members get a group's doorbell. The heatmap client (`heatmap.tsx`) calls
+  `supabase.realtime.setAuth()` then subscribes (`private: true`) and silently re-fetches the current
+  week on receipt (400 ms debounce coalesces a bulk calendar sync into one refetch). Privacy model
+  intact: the broadcast is a doorbell, the de-identified `group_heatmap` RPC is still the only data path.
+- **Transfer-on-delete** — `deleteAccount` now accepts `transfer:<groupId>` form fields; for each
+  owned group the user picks another active member to receive ownership (via the existing
+  `transfer_group_ownership` RPC, run as the still-owner) or lets it dissolve. The profile page
+  gathers eligible new owners (admins first) per owned group; `delete-account.tsx` renders a select
+  per group, defaulting to transfer so groups survive by default.
+- **Migration:** 1 applied to local **and** hosted PRODUCTION via MCP (ledger version
+  `20260604211816` realtime_availability_broadcast; local filename matches). `get_advisors(security)`
+  clean except the same intentional WARNs (new `can_read_group_broadcast` adds the expected
+  `security_definer_function_executable` WARN).
+- **Tests:** **41 unit + 86 integration (127)** green (+7 `realtime.test.ts`: broadcast-authorization
+  boundary + triggers-don't-break-writes). `tsc`, `eslint`, `next build`, e2e all green (e2e run with
+  Google env unset, as before). ⚠️ Live realtime *delivery* (websocket subscribe → receive) is a
+  manual check, like Web Push — the deterministic auth boundary is what's unit/integration-tested.
+
+**Next: Phase 6 (Microsoft Calendar).** Re-skin `src/lib/google/*` → `src/lib/microsoft/*`; the
+`calendars` / `events` / `category_overrides` tables and `calendar_provider` enum already accommodate it.
+
+---
+
 **Phase 4 (PWA polish) is COMPLETE and tested (2026-06-04).** Built on branch
 `feature/phase-4-pwa` (off `main` @ `392b029`, which has P1–P3 via PR #6). All four P4 deliverables:
 - **Installable PWA** — `src/app/manifest.ts` (served at `/manifest.webmanifest`), generated

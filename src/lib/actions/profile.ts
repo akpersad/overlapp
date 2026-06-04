@@ -105,15 +105,39 @@ export async function removeAvatar(): Promise<void> {
   revalidatePath("/profile");
 }
 
-// Permanently delete the account. Owned groups are dissolved (other members lose
-// access — the confirmation UI warns about this; transferring ownership first
-// keeps a group alive). Implemented with the service role: dissolve owned groups
-// (FK from groups.owner_id would otherwise block the user delete), then delete
-// the auth user, which cascades to profiles + group_members. (SPEC §8.)
-export async function deleteAccount(): Promise<void> {
+// Permanently delete the account. For each group the user owns they can choose,
+// per group, to TRANSFER ownership to another active member (keeping the group
+// alive) or to let it be dissolved — submitted as `transfer:<groupId>` form
+// fields (value = new owner's user id, or empty = dissolve). (POST-LAUNCH UX
+// follow-up; SPEC §8.)
+//
+// Order matters: run the transfers first (as the still-owner, via the session
+// client so the RPC's auth.uid() check passes). Those groups then have a new
+// owner, so the service-role delete below — which removes any groups STILL owned
+// by the user (the dissolve choices) — leaves the transferred ones standing.
+// Deleting the auth user then cascades to profiles + group_members.
+export async function deleteAccount(formData?: FormData): Promise<void> {
   const user = await requireUser();
+  const supabase = await createClient();
+
+  if (formData) {
+    for (const [key, value] of formData.entries()) {
+      if (!key.startsWith("transfer:")) continue;
+      const groupId = key.slice("transfer:".length);
+      const newOwner = String(value).trim();
+      if (!newOwner) continue; // empty = dissolve (handled by the delete below)
+      const { error } = await supabase.rpc("transfer_group_ownership", {
+        p_group_id: groupId,
+        p_new_owner: newOwner,
+      });
+      if (error) throw new Error(error.message);
+    }
+  }
+
   const admin = createAdminClient();
 
+  // Any groups the user still owns (dissolve choices / no eligible member) are
+  // removed; the FK from groups.owner_id would otherwise block the user delete.
   const { error: groupsError } = await admin
     .from("groups")
     .delete()
@@ -123,7 +147,6 @@ export async function deleteAccount(): Promise<void> {
   const { error: userError } = await admin.auth.admin.deleteUser(user.id);
   if (userError) throw new Error(userError.message);
 
-  const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
 }

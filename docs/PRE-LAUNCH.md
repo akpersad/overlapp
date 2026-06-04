@@ -6,9 +6,14 @@
 > private test with Google "Test users"; these gate opening the doors to the
 > public.
 
-## Legal pages — Privacy Policy & Terms of Service  ⬅️ planned, not built yet
+## Legal pages — Privacy Policy & Terms of Service  ✅ built (Phase 5)
 
-**Build two public, directly-linkable pages: `/privacy` and `/terms`.**
+> Built in Phase 5: `/privacy` + `/terms` are live (route group `src/app/(legal)/`), added to the
+> proxy `PUBLIC_PATHS`, and linked from the landing footer. **Remaining owner action:** confirm a
+> real, monitored contact mailbox (the `CONTACT_EMAIL` placeholder in `src/app/(legal)/ui.tsx`) and
+> have counsel review the copy before relying on it publicly.
+
+**Two public, directly-linkable pages: `/privacy` and `/terms`.**
 
 - Public routes (reachable signed-out; add `/privacy` + `/terms` to the proxy's
   `PUBLIC_PATHS`), linked from the landing-page footer.

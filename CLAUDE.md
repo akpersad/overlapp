@@ -35,7 +35,10 @@ source of truth for the problem, decisions, user journeys, and roadmap.
 ## Roadmap
 P1 Foundation (auth, groups, invite, manual blocks, group heatmap — build end-to-end first) →
 P2 calendar sync + overrides → P3 multi-date proposals, nudges, quorum, write-back →
-P4 PWA polish (installable, push, offline, recurring).
+P4 PWA polish (installable, push, offline, recurring) →
+P5 launch readiness & UX polish (legal pages, realtime heatmap, transfer-on-delete) →
+P6 Microsoft Calendar (the Google twin) → P7 visual design pass (gated on product input, last).
+Phases 5–7 detail lives in [`docs/SPEC.md`](docs/SPEC.md) Roadmap.
 Pre-launch checklist (legal pages, OAuth verification, deploy): [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md).
 Non-MVP / post-launch backlog (free-tier-first): [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
 
@@ -138,8 +141,29 @@ except the same intentional WARNs (the new `upcoming_hangouts` adds the expected
 `security_definer_function_executable` WARN) + the pre-existing `auth_leaked_password_protection`
 auth-config WARN.
 
-**Next: all four roadmap phases are done.** Pre-launch work (legal pages, OAuth verification,
-deploy) is in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); post-launch backlog (Microsoft/Apple
-calendars, Vault token encryption, install walkthrough) in [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
-Verify the live push round-trip against a production build + installed PWA once deployed (it can't be
-exercised by `next dev` or the e2e suite).
+**Phase 5 (launch readiness & UX polish) is COMPLETE and tested (2026-06-04).** Three deliverables:
+**public legal pages** — `/privacy` + `/terms` (route group `src/app/(legal)/`, `ui.tsx` shared bits;
+added to the proxy `PUBLIC_PATHS`; linked from the landing footer) covering collection, the
+free/busy-only model, Google Limited Use, deletion, and a contact email (`CONTACT_EMAIL` placeholder
+— confirm a real mailbox pre-launch); **realtime heatmap** — AFTER triggers `realtime.send` a
+group-id-only "doorbell" on a PRIVATE per-group topic (`group-availability:<id>`) whenever
+availability/membership/group-settings change, authorized by a `realtime.messages` SELECT policy
+(`can_read_group_broadcast` → `is_group_member`, so co-members never receive event data); the heatmap
+client subscribes (`supabase.realtime.setAuth()` + `private: true`) and silently re-fetches the week
+(400 ms debounce coalesces bulk syncs); **transfer-on-delete** — account deletion now offers, per
+owned group, transferring ownership to another active member (via the existing
+`transfer_group_ownership` RPC) instead of always dissolving (`deleteAccount` reads `transfer:<id>`
+form fields; profile page gathers eligible owners). **Migration applied to BOTH local and hosted
+PRODUCTION via MCP** (1 new, ledger version `20260604211816` realtime_availability_broadcast; local
+filename matches). `get_advisors(security)` clean except the same intentional WARNs (the new
+`can_read_group_broadcast` adds the expected `security_definer_function_executable` WARN — same
+accepted pattern). **Tests: 41 unit + 86 integration (127)** green (+7 `realtime.test.ts` covering
+the broadcast authorization boundary + that triggers don't break writes); `tsc`/`eslint`/`next
+build`/e2e green. ⚠️ Live realtime *delivery* (websocket subscribe → receive) is a manual check, like
+Web Push — the deterministic auth boundary is tested instead.
+
+**Next: Phase 6 (Microsoft Calendar) — the architectural twin of Google.** Phase 7 (visual design)
+is **gated on product input** and lands last. Other pre-launch work (OAuth verification, deploy) is
+owner-driven in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
+[`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md). Verify the live push round-trip against a production
+build + installed PWA once deployed (it can't be exercised by `next dev` or the e2e suite).

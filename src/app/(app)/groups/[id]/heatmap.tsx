@@ -47,6 +47,9 @@ export function Heatmap({
   // True when we're showing a cached copy because the network was unreachable
   // (Phase 4 — offline group-calendar view).
   const [stale, setStale] = useState(false);
+  // Bumped by a realtime broadcast to silently re-fetch the current week when a
+  // member's availability (or the group itself) changes (Phase 5 — live heatmap).
+  const [liveTick, setLiveTick] = useState(0);
 
   const start = useMemo(() => weekStart(new Date(), weekOffset), [weekOffset]);
 
@@ -120,7 +123,41 @@ export function Heatmap({
     return () => {
       cancelled = true;
     };
-  }, [groupId, slotMinutes, start, cacheKey]);
+  }, [groupId, slotMinutes, start, cacheKey, liveTick]);
+
+  // Phase 5 — live heatmap. Subscribe to this group's PRIVATE broadcast topic;
+  // an AFTER trigger rings it (group_id only — no event data) whenever any
+  // member's availability or the group itself changes. We coalesce a burst (e.g.
+  // a calendar sync upserting many events) into a single re-fetch via a short
+  // debounce, then bump liveTick to re-run the fetch effect above silently.
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+    let debounce: ReturnType<typeof setTimeout> | undefined;
+    const channel = supabase.channel(`group-availability:${groupId}`, {
+      config: { private: true },
+    });
+
+    channel.on("broadcast", { event: "availability_changed" }, () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        if (active) setLiveTick((t) => t + 1);
+      }, 400);
+    });
+
+    // Private topics are authorized via realtime.messages RLS, which needs the
+    // user's access token on the realtime socket. setAuth() (no arg) picks it up
+    // from the current session before we subscribe.
+    void supabase.realtime.setAuth().then(() => {
+      if (active) channel.subscribe();
+    });
+
+    return () => {
+      active = false;
+      clearTimeout(debounce);
+      void supabase.removeChannel(channel);
+    };
+  }, [groupId]);
 
   function goToWeek(updater: (w: number) => number) {
     setLoading(true);

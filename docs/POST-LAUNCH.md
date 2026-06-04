@@ -76,10 +76,11 @@
 
 ## UX follow-ups
 
-- **Account deletion: offer "transfer ownership" instead of dissolve** for owned
-  groups (today it dissolves them, with a clear warning).
-- **Realtime heatmap** via Supabase Realtime (free tier) — live updates instead
-  of revalidate-on-action.
+- ~~**Account deletion: offer "transfer ownership" instead of dissolve** for owned
+  groups.~~ ✅ Built in Phase 5 — per-group transfer choice on the delete flow.
+- ~~**Realtime heatmap** via Supabase Realtime (free tier) — live updates instead
+  of revalidate-on-action.~~ ✅ Built in Phase 5 — private per-group broadcast
+  doorbell (group-id only, no event data) + silent re-fetch.
 - **Visual design pass** per `DESIGN-PRINCIPLES.md` (heatmap-as-hero, one accent,
   colourblind-safe). Free — just effort. The functional UI is intentionally plain.
 

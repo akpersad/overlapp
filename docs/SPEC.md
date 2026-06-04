@@ -2,9 +2,11 @@
 
 > Status: Draft v2 · Last updated 2026-06-04
 > All product decisions are settled. The **data model is finalized** — see
-> [`DATA-MODEL.md`](DATA-MODEL.md). **All four roadmap phases (1–4) are built and tested** (see
-> `docs/HANDOFF.md`, `docs/GOOGLE-SETUP.md`, `docs/PWA-SETUP.md`). Remaining work is pre-launch
-> ([`PRE-LAUNCH.md`](PRE-LAUNCH.md)) and the post-launch backlog ([`POST-LAUNCH.md`](POST-LAUNCH.md)).
+> [`DATA-MODEL.md`](DATA-MODEL.md). **Roadmap phases 1–5 are built and tested** (see
+> `docs/HANDOFF.md`, `docs/GOOGLE-SETUP.md`, `docs/PWA-SETUP.md`). **Phase 6** (Microsoft Calendar)
+> and **Phase 7** (visual design — gated on product input) remain; see the Roadmap below. Other
+> pre-launch work is owner-driven ([`PRE-LAUNCH.md`](PRE-LAUNCH.md)); backlog in
+> ([`POST-LAUNCH.md`](POST-LAUNCH.md)).
 
 ## The problem
 
@@ -149,6 +151,35 @@ User ──┬── connects calendars (Google / Apple / Outlook)
 - Push notifications for proposals / reminders (Web Push, layered on in-app notifications)
 - Offline view of the group calendar (cached heatmap)
 - Recurring hangouts for regular groups (define → upcoming occurrences → seed a proposal)
+
+---
+
+> **Phases 5–7** were added after the original P1–P4 roadmap shipped. They cover the work that was
+> parked in `PRE-LAUNCH.md` / `POST-LAUNCH.md`, grouped so the visual-design pass (which wants
+> product input before it starts) stands alone and lands last.
+
+### Phase 5 — Launch readiness & UX polish ✅ *(built)*
+*Goal: make the app shippable and round out the existing loop with the cheap, high-value wins.*
+- Public **Privacy Policy** (`/privacy`) + **Terms** (`/terms`) pages — required for Google OAuth
+  verification; linked from the landing footer; reachable signed-out.
+- **Realtime group heatmap** — Supabase Realtime so a member's availability edit updates everyone's
+  heatmap live, *without* breaking the free/busy privacy model (broadcast carries no event data).
+- **Account deletion → transfer instead of dissolve** — when deleting an account that owns groups,
+  hand ownership to another active member per-group rather than always dissolving.
+- Supabase `get_advisors` review + full QA (tests / `tsc` / `eslint` / `next build`).
+- *(Deploy, Google OAuth verification, and DNS remain owner-driven — see `PRE-LAUNCH.md`.)*
+
+### Phase 6 — Microsoft Calendar
+*Goal: finish the calendar-provider set's next entry — the architectural twin of Google.*
+- Microsoft Graph / Outlook OAuth (calendar-access flow, not login).
+- Busy-by-default import + the same per-event / per-category free/blocked overrides.
+- Background re-sync + write-back, reusing the `calendars` / `events` / `category_overrides` tables
+  (`calendar_provider` enum already has `microsoft`). Re-skin of `src/lib/google/*` → `src/lib/microsoft/*`.
+
+### Phase 7 — Visual design pass  ⬅️ *gated on product input before build*
+*Goal: execute `DESIGN-PRINCIPLES.md` — heatmap-as-hero, one accent, colourblind-safe, anti-AI-slop.*
+- A deliberate visual identity across every screen (the current UI is intentionally plain Tailwind).
+- **Held until the owner provides direction** (references, accent, tone) — do not start without it.
 
 ---
 
