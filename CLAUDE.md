@@ -36,6 +36,7 @@ source of truth for the problem, decisions, user journeys, and roadmap.
 P1 Foundation (auth, groups, invite, manual blocks, group heatmap — build end-to-end first) →
 P2 calendar sync + overrides → P3 multi-date proposals, nudges, quorum, write-back →
 P4 PWA polish (installable, push, offline, recurring).
+Pre-launch checklist (legal pages, OAuth verification, deploy): [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md).
 Non-MVP / post-launch backlog (free-tier-first): [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
 
 ## Status / next step
