@@ -44,18 +44,49 @@ export function Heatmap({
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // True when we're showing a cached copy because the network was unreachable
+  // (Phase 4 — offline group-calendar view).
+  const [stale, setStale] = useState(false);
 
   const start = useMemo(() => weekStart(new Date(), weekOffset), [weekOffset]);
+
+  // Per-group, per-week cache key. The heatmap is the offline hero: we persist
+  // each successfully-loaded week so a previously-opened group calendar still
+  // renders without a network, with a clear "last saved" indicator.
+  const cacheKey = useMemo(
+    () => `overlapp.heatmap.${groupId}.${slotMinutes}.${start.getTime()}`,
+    [groupId, slotMinutes, start],
+  );
 
   // Fetch the week's heatmap whenever the group/slot/week changes. setState
   // happens only inside the async resolution (never synchronously in the effect
   // body), and the cancelled flag drops a stale response from a fast week-flip.
+  // On a network failure we fall back to the cached copy (stale = true).
   useEffect(() => {
     let cancelled = false;
     const supabase = createClient();
     const from = new Date(start);
     const to = new Date(start);
     to.setDate(to.getDate() + 7);
+
+    const fallbackToCache = (errMsg: string | null) => {
+      if (cancelled) return;
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          setSlots(JSON.parse(cached) as Slot[]);
+          setStale(true);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        /* ignore cache read errors */
+      }
+      setError(errMsg);
+      setLoading(false);
+    };
+
     supabase
       .rpc("group_heatmap", {
         p_group_id: groupId,
@@ -63,16 +94,33 @@ export function Heatmap({
         p_to: to.toISOString(),
         p_slot_minutes: slotMinutes,
       })
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        setError(error ? error.message : null);
-        setSlots((data as Slot[]) ?? []);
-        setLoading(false);
-      });
+      // The Supabase builder is a thenable: pass a rejection handler as the
+      // second arg (it has no .catch). A hard network failure (offline) rejects;
+      // a query-level failure comes back as `error`.
+      .then(
+        ({ data, error }) => {
+          if (cancelled) return;
+          if (error) {
+            fallbackToCache(error.message);
+            return;
+          }
+          const fresh = (data as Slot[]) ?? [];
+          setSlots(fresh);
+          setStale(false);
+          setError(null);
+          setLoading(false);
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(fresh));
+          } catch {
+            /* storage full / unavailable — non-fatal */
+          }
+        },
+        () => fallbackToCache("Couldn't load the latest availability."),
+      );
     return () => {
       cancelled = true;
     };
-  }, [groupId, slotMinutes, start]);
+  }, [groupId, slotMinutes, start, cacheKey]);
 
   function goToWeek(updater: (w: number) => number) {
     setLoading(true);
@@ -143,6 +191,11 @@ export function Heatmap({
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {stale && (
+        <p className="rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+          Offline — showing the last saved availability for this week.
+        </p>
+      )}
 
       <div className="overflow-x-auto">
         <div className="min-w-[480px]">

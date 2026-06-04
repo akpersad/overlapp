@@ -12,10 +12,13 @@ import {
   setMemberRole,
   transferOwnership,
 } from "@/lib/actions/groups";
+import { deleteRecurringHangout } from "@/lib/actions/hangouts";
 import { createClient } from "@/lib/supabase/server";
 import { displayName } from "@/lib/format";
+import { describeRrule } from "@/lib/rrule";
 import { btnDanger, btnSecondary, card } from "@/lib/ui";
 import { Heatmap } from "./heatmap";
+import { HangoutForm } from "./hangout-form";
 import { InvitePanel } from "./invite-panel";
 
 type ProfileLite = {
@@ -112,6 +115,35 @@ export default async function GroupPage({
       finalTimes.set(o.id, { starts_at: o.starts_at, ends_at: o.ends_at });
   }
 
+  // Recurring hangouts (Phase 4). The definitions (for management) + concrete
+  // upcoming occurrences (via the expander RPC), so each hangout can show its
+  // next instance and seed a proposal from it.
+  const { data: hangoutRows } = await supabase
+    .from("recurring_hangouts")
+    .select("id, title, description, rrule")
+    .eq("group_id", id)
+    .eq("active", true)
+    .order("created_at", { ascending: true });
+  const hangouts = hangoutRows ?? [];
+  const horizon = new Date();
+  horizon.setDate(horizon.getDate() + 90);
+  const nextOccurrence = new Map<string, { occ_start: string; occ_end: string }>();
+  if (hangouts.length > 0) {
+    const { data: occ } = await supabase.rpc("upcoming_hangouts", {
+      p_group_id: id,
+      p_to: horizon.toISOString(),
+    });
+    // Rows are ordered by occ_start; keep the first (soonest) per hangout.
+    for (const o of occ ?? []) {
+      if (!nextOccurrence.has(o.hangout_id)) {
+        nextOccurrence.set(o.hangout_id, {
+          occ_start: o.occ_start,
+          occ_end: o.occ_end,
+        });
+      }
+    }
+  }
+
   let invites: { id: string; token: string; use_count: number }[] = [];
   let pendingEmails: { id: string; email: string }[] = [];
   if (isAdmin) {
@@ -203,6 +235,71 @@ export default async function GroupPage({
           </ul>
         )}
       </section>
+
+      {/* Recurring hangouts (Phase 4 — regular groups) */}
+      {(hangouts.length > 0 || isAdmin) && (
+        <section className={card}>
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            Recurring hangouts
+          </h2>
+          {hangouts.length === 0 ? (
+            <p className="mb-3 text-sm text-zinc-500">
+              Set up a standing get-together (e.g. game night every Friday).
+              You can spin up a proposal from any upcoming date.
+            </p>
+          ) : (
+            <ul className="mb-1 flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+              {hangouts.map((h) => {
+                const next = nextOccurrence.get(h.id);
+                return (
+                  <li
+                    key={h.id}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
+                  >
+                    <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                      {h.title}
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {describeRrule(h.rrule)}
+                    </span>
+                    {next ? (
+                      <span className="text-xs text-zinc-400">
+                        next <LocalTime iso={next.occ_start} />
+                      </span>
+                    ) : (
+                      <span className="text-xs text-zinc-400">no upcoming dates</span>
+                    )}
+                    <div className="ml-auto flex items-center gap-3">
+                      {next && (
+                        <Link
+                          href={`/groups/${group.id}/proposals/new?title=${encodeURIComponent(
+                            h.title,
+                          )}&start=${encodeURIComponent(
+                            next.occ_start,
+                          )}&end=${encodeURIComponent(next.occ_end)}`}
+                          className="text-xs text-indigo-600 hover:underline"
+                        >
+                          Propose this
+                        </Link>
+                      )}
+                      {isAdmin && (
+                        <form action={deleteRecurringHangout}>
+                          <input type="hidden" name="hangout_id" value={h.id} />
+                          <input type="hidden" name="group_id" value={group.id} />
+                          <button className="text-xs text-red-600 hover:underline">
+                            Remove
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {isAdmin && <HangoutForm groupId={group.id} />}
+        </section>
+      )}
 
       {/* Pending approvals (admins) */}
       {isAdmin && pendingMembers.length > 0 && (

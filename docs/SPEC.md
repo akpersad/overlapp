@@ -2,8 +2,9 @@
 
 > Status: Draft v2 · Last updated 2026-06-04
 > All product decisions are settled. The **data model is finalized** — see
-> [`DATA-MODEL.md`](DATA-MODEL.md). **Phases 1, 2 and 3 are built and tested** (see `docs/HANDOFF.md`
-> and `docs/GOOGLE-SETUP.md`); the next build target is **Phase 4 (PWA polish)**.
+> [`DATA-MODEL.md`](DATA-MODEL.md). **All four roadmap phases (1–4) are built and tested** (see
+> `docs/HANDOFF.md`, `docs/GOOGLE-SETUP.md`, `docs/PWA-SETUP.md`). Remaining work is pre-launch
+> ([`PRE-LAUNCH.md`](PRE-LAUNCH.md)) and the post-launch backlog ([`POST-LAUNCH.md`](POST-LAUNCH.md)).
 
 ## The problem
 
@@ -143,11 +144,11 @@ User ──┬── connects calendars (Google / Apple / Outlook)
 - "Good enough" quorum slots (e.g. 4 of 5 can make it).
 - Locked event optionally **writes back** to each member's real calendar (per their opt-in).
 
-### Phase 4 — PWA polish
+### Phase 4 — PWA polish ✅ *(built — see `docs/PWA-SETUP.md`)*
 - Installable app + web app manifest
-- Push notifications for proposals / reminders
-- Offline view of the group calendar
-- Recurring hangouts for regular groups
+- Push notifications for proposals / reminders (Web Push, layered on in-app notifications)
+- Offline view of the group calendar (cached heatmap)
+- Recurring hangouts for regular groups (define → upcoming occurrences → seed a proposal)
 
 ---
 
