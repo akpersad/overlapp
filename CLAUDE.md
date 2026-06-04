@@ -47,34 +47,28 @@ P1's core loop). **Infra done:** Supabase project provisioned (Data API on, auto
 automatic RLS on); `.env.local` populated with Supabase URL + anon key; Resend auth email wired
 via custom SMTP + branded templates ([`docs/EMAIL-SETUP.md`](docs/EMAIL-SETUP.md)).
 
-**Phase 1 in progress.** Done: `profiles` migration (table + `handle_new_user()` signup trigger +
-RLS, advisor-clean) applied via Supabase MCP and version-controlled in `supabase/migrations/`;
-`@supabase/ssr` clients scaffolded (`src/lib/supabase/`: browser, server, generated `Database`
-types) + `src/proxy.ts` (Next 16 renamed `middleware`→`proxy`) for session refresh + route gating;
-starter leftovers cleaned (layout metadata, Geist font). `tsc` + `next build` both green.
+**Phase 1 is COMPLETE and tested (2026-06-04).** Full core loop end-to-end: auth
+(signup/login/verify/logout), onboarding, profile, dashboard, group create/edit/manage, the
+invite flow (Web Share token links + email pending invites + public preview + redeem), the
+manual-block availability editor (weekly RRULE), and the **group heatmap** in viewer-local time.
+The app lives under `src/app/` (route group `(app)` = authenticated shell; public:
+`login`/`signup`/`verify-email`/`auth/confirm`/`invite/[token]`); Server Actions in
+`src/lib/actions/`, DAL in `src/lib/auth.ts`, pure helpers in `src/lib/{format,rrule,ui}.ts`.
 
-Also done: `groups` + `group_members` migration — enums (`member_role`/`member_status`/
-`join_control`), 15-member-cap trigger, owner-auto-membership trigger, `SECURITY DEFINER`
-membership helpers (`is_group_member`/`is_group_admin`/`shares_group_with`) that break RLS
-recursion, full RLS posture, and the now-unblocked co-member profile-read policy. Two follow-up
-migrations fixed bugs the tests caught: re-granted helper `EXECUTE` to `authenticated`, and
-admitted a group to its owner in the SELECT policy so `insert().select()` works.
+DB layer (all applied locally **and** to the hosted project via MCP, advisor-clean except the
+intentional `security_definer_function_executable` WARNs): `profiles`, `groups`+`group_members`,
+`group_invites`+`pending_invites`, **`manual_blocks`**, the **availability RPCs**
+(`expand_block_occurrences` RRULE expander · `my_busy_intervals` · de-identified
+`group_busy_intervals` · on-the-fly `group_heatmap`), **group management RPCs** (`dissolve_group`
+= the §9-E soft-delete write path · `transfer_group_ownership` · a role-integrity guard), and
+**`pending_member_visibility`**.
 
-Also done: `group_invites` + `pending_invites` migration (`20260604003050_create_invites`) —
-admin-managed RLS on both tables; `get_invite_preview(token)` (SECURITY DEFINER, anon-callable
-preview: name/inviter/member-count/join-policy only) and `redeem_group_invite(token)` (SECURITY
-DEFINER, authenticated: open→active / approval→pending, idempotent, `use_count`/15-cap aware);
-a `lower(trim())` email normaliser; and `handle_new_user()` extended to auto-join matching
-`pending_invites` on signup (full-group `check_violation` swallowed so signup never fails).
+**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **16 unit + 41 integration (57)** green, plus a
+**Playwright e2e/visual** layer (`npm run test:e2e`) driving the whole loop as a user against the
+local stack (screenshots reviewed then deleted). `tsc`, `eslint`, `next build` all green. Scripts:
+`test`, `test:unit`, `test:integration`, `test:e2e`, `db:start`/`db:reset`/`db:stop`.
 
-**Testing set up** (see [`docs/TESTING.md`](docs/TESTING.md) — the durable strategy). Vitest with
-two projects: **unit** (pure logic) and **integration** (drives the real supabase-js → RLS path
-as actual signed-in users, against a **local Supabase stack** via Docker). 28 tests green, build
-clean. Strategy: test what exists at the end of every phase; the Playwright/visual (run-as-user +
-screenshot, then delete) layer is added once UI exists. Scripts: `test`, `test:unit`,
-`test:integration`, `db:start`/`db:reset`/`db:stop`.
-
-**Next:** `manual_blocks` → `my_busy_intervals` / `group_busy_intervals` busy-interval RPCs →
-heatmap RPC, then the auth/group/invite UI.
+**Next: Phase 2** — Google Calendar OAuth + import (busy-by-default), free/blocked overrides
+(per-event + per-category), background re-sync (`DATA-MODEL.md §6`).
 Migrations go through the Supabase MCP **and** as files in `supabase/migrations/` (filenames must
 match the remote ledger version so `supabase db push` won't replay them).
