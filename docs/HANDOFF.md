@@ -6,14 +6,15 @@
 ## TL;DR — where we are
 
 Product spec and data model are **finalized**. Backend infra (Supabase project, Resend auth
-email, Supabase MCP server) is **set up**. **Phase 1 is underway:** `profiles` and
-`groups`+`group_members` migrations are applied (with RLS, triggers, and two follow-up bug-fix
-migrations), the `@supabase/ssr` client layer + `src/proxy.ts` session/route gate are scaffolded,
-and a **test harness is in place** (Vitest unit + integration against a local Supabase stack;
-see `docs/TESTING.md`). The repo is no longer the stock starter. The immediate next task is the
-**`group_invites` + `pending_invites`** migration (continuing the `DATA-MODEL.md §12` order).
+email, Supabase MCP server) is **set up**. **Phase 1 is underway:** `profiles`,
+`groups`+`group_members`, and `group_invites`+`pending_invites` migrations are applied (with RLS,
+triggers, RPCs, and follow-up bug-fix migrations), the `@supabase/ssr` client layer +
+`src/proxy.ts` session/route gate are scaffolded, and a **test harness is in place** (Vitest unit
++ integration against a local Supabase stack; see `docs/TESTING.md`). The repo is no longer the
+stock starter. The immediate next task is the **`manual_blocks`** migration (continuing the
+`DATA-MODEL.md §12` order), then busy-interval RPCs + heatmap, then the auth/group UI.
 
-**Testing.** `docs/TESTING.md` is the durable strategy: unit + integration now (16 tests green),
+**Testing.** `docs/TESTING.md` is the durable strategy: unit + integration now (28 tests green),
 Playwright visual/e2e once UI exists. Run integration tests against the **local** stack
 (`npm run db:start` then `npm run test`). After any migration: `npm run db:reset` + regenerate
 DB types. Don't run integration tests against the hosted project.
@@ -23,10 +24,11 @@ dissolution needs a `SECURITY DEFINER` RPC — build it with group management (`
 
 ## Why this handoff exists
 
-The user is **restarting Claude Code** to load the newly-added Supabase MCP server (`.mcp.json`).
-MCP servers only load at startup, and project-scoped servers require one-time approval. After
-restart the user must: approve the `supabase` project server → run `/mcp` → authenticate
-(browser OAuth). Once `/mcp` shows `supabase` = **connected**, the Supabase tools are available.
+Continuity between sessions: lets a fresh Claude Code session resume without re-deriving state.
+
+**Supabase MCP is connected and working** (used to apply migrations this session). If a new
+session shows it disconnected: run `/mcp` → authenticate (browser OAuth). MCP servers load only
+at startup, so a freshly-edited `.mcp.json` needs a restart.
 
 ## Project facts
 
@@ -36,7 +38,8 @@ restart the user must: approve the `supabase` project server → run `/mcp` → 
 - **⚠️ Next.js 16 caveat:** This Next.js has breaking changes vs. training-data knowledge
   (see `AGENTS.md`). **Read `node_modules/next/dist/docs/` before writing app code** — esp.
   async `cookies()`/`headers()` and middleware patterns, which matter for `@supabase/ssr`.
-- **Git:** repo at `overlapp/`, branch `feature/initial-scaffold`. No remote pushes yet.
+- **Git:** repo at `overlapp/`. `main` has the foundation + groups work merged (PRs #1, #2).
+  Invites work is committed on branch **`feature/invites`** (not yet pushed/PR'd).
 - **Supabase project ref:** `qildwjcnzyejgjvnyohi` (Americas region). Security settings:
   Data API ON, auto-expose-new-tables OFF, automatic-RLS ON (new tables get RLS auto-enabled →
   every table needs explicit grants + policies in its migration or it's deny-all).
@@ -65,7 +68,7 @@ restart the user must: approve the `supabase` project server → run `/mcp` → 
     (`_dmarc` → `v=DMARC1; p=none; rua=mailto:akpersad@gmail.com`). Status: in progress / verify.
 - **Supabase MCP server** configured in `.mcp.json` (hosted HTTP `mcp.supabase.com`,
   scoped to project ref, OAuth — no token in repo). **Mode: WRITE-enabled** (user chose this; MCP
-  can run migrations/SQL directly). Pending: restart + OAuth (see above).
+  can run migrations/SQL directly). **Connected and in active use** (applied the invites migration).
 - **Supabase CLI** also installed (`npx supabase`, v2.104.0) as a devDependency — fallback/option
   for versioned migrations. Docker is available for `supabase start` (local dev) if wanted.
 
@@ -97,6 +100,15 @@ restart the user must: approve the `supabase` project server → run `/mcp` → 
   `package-lock.json` one dir up in `PersonalProjects/`). Not ours; silence later via
   `turbopack.root` if it becomes annoying.
 
+### Phase 1 — migrations since the first slice
+
+- **`groups` + `group_members`** (`20260603210859` + fixes `…211217`, `…214316`): enums, 15-cap
+  trigger, owner-auto-membership, `SECURITY DEFINER` membership helpers, full RLS.
+- **`group_invites` + `pending_invites`** (`20260604003050_create_invites`): token-link invites,
+  `get_invite_preview`/`redeem_group_invite` RPCs, email normaliser, `handle_new_user()` auto-join.
+
+Both are detailed (with the bugs their tests caught) in **NEXT STEPS** below, marked DONE.
+
 ## Committed in this slice
 
 The previously-orphaned dep additions (`supabase` devDep, `@supabase/supabase-js`,
@@ -114,12 +126,24 @@ test; advisors clean). Continue from step 2:
 1. ~~**`groups` + `group_members`** migration (`DATA-MODEL.md §3`): two tables, the enums
    (`member_role`, `member_status`, `join_control`), the **15-member-cap** trigger, and RLS
    (members read; admins/owner write); unlocks the co-member profile-read policy.~~ **DONE.**
-2. **`group_invites` + `pending_invites`** (`§4`–`§5`): token-link invites, email-keyed pending
+2. ~~**`group_invites` + `pending_invites`** (`§4`–`§5`): token-link invites, email-keyed pending
    invites, the invite-preview `security definer` RPC, and **extend `handle_new_user()`** to
-   consume `pending_invites` on signup (the auto-join).
+   consume `pending_invites` on signup (the auto-join).~~ **DONE** — migration
+   `20260604003050_create_invites` (applied via MCP + file). Adds both tables with admin-managed
+   RLS; `get_invite_preview(token)` (SECURITY DEFINER, anon + authenticated — name/inviter/
+   member-count/join-policy only, no roster/availability; empty for revoked/expired/used-up);
+   `redeem_group_invite(token)` (SECURITY DEFINER, authenticated — open→active / approval→pending,
+   idempotent, `FOR UPDATE` + `use_count` bump, 15-cap still applies); a `lower(trim())` email
+   normaliser trigger; and `handle_new_user()` extended to consume matching `pending_invites` on
+   signup (per-group attempt wrapped so a full group's `check_violation` is skipped, never blocking
+   account creation). 12 integration tests added (`tests/integration/invites.test.ts`).
+   Advisor note: `get_invite_preview`/`redeem_group_invite` show WARN
+   `*_security_definer_function_executable` — **intentional** (client-callable RPCs), same accepted
+   pattern as the existing `is_group_*`/`shares_group_with` helpers.
 3. **`manual_blocks`** (`§7`) → **`my_busy_intervals` / `group_busy_intervals`** + **heatmap RPC**
-   (`§8`, on-the-fly per `§9-B`).
-4. Then the UI: auth (email+password first), group create/join, manual-block editor, heatmap.
+   (`§8`, on-the-fly per `§9-B`).  ← **START HERE**
+4. Then the UI: auth (email+password first), group create/join + **invite share/preview/redeem
+   flow** (token links via Web Share API; the RPCs above are ready), manual-block editor, heatmap.
 
 **Migration workflow reminder:** apply via Supabase MCP `apply_migration` **and** save a matching
 file in `supabase/migrations/` whose timestamp matches the version the ledger recorded (check with

@@ -60,15 +60,21 @@ recursion, full RLS posture, and the now-unblocked co-member profile-read policy
 migrations fixed bugs the tests caught: re-granted helper `EXECUTE` to `authenticated`, and
 admitted a group to its owner in the SELECT policy so `insert().select()` works.
 
+Also done: `group_invites` + `pending_invites` migration (`20260604003050_create_invites`) —
+admin-managed RLS on both tables; `get_invite_preview(token)` (SECURITY DEFINER, anon-callable
+preview: name/inviter/member-count/join-policy only) and `redeem_group_invite(token)` (SECURITY
+DEFINER, authenticated: open→active / approval→pending, idempotent, `use_count`/15-cap aware);
+a `lower(trim())` email normaliser; and `handle_new_user()` extended to auto-join matching
+`pending_invites` on signup (full-group `check_violation` swallowed so signup never fails).
+
 **Testing set up** (see [`docs/TESTING.md`](docs/TESTING.md) — the durable strategy). Vitest with
 two projects: **unit** (pure logic) and **integration** (drives the real supabase-js → RLS path
-as actual signed-in users, against a **local Supabase stack** via Docker). 16 tests green, build
+as actual signed-in users, against a **local Supabase stack** via Docker). 28 tests green, build
 clean. Strategy: test what exists at the end of every phase; the Playwright/visual (run-as-user +
 screenshot, then delete) layer is added once UI exists. Scripts: `test`, `test:unit`,
 `test:integration`, `db:start`/`db:reset`/`db:stop`.
 
-**Next:** `group_invites` & `pending_invites` (+ auto-join, extends `handle_new_user()`;
-invite-preview `security definer` RPC) → `manual_blocks` → busy-interval RPCs → heatmap, then
-the auth/group UI.
+**Next:** `manual_blocks` → `my_busy_intervals` / `group_busy_intervals` busy-interval RPCs →
+heatmap RPC, then the auth/group/invite UI.
 Migrations go through the Supabase MCP **and** as files in `supabase/migrations/` (filenames must
 match the remote ledger version so `supabase db push` won't replay them).

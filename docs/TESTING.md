@@ -103,9 +103,14 @@ At the close of each phase:
 ## Current coverage (Phase 1, as of 2026-06-03)
 
 - **Unit:** `tests/unit/config.test.ts` — Supabase env-var validation.
-- **Integration:** `tests/integration/profiles.test.ts` (signup trigger + profile RLS) and
+- **Integration:** `tests/integration/profiles.test.ts` (signup trigger + profile RLS),
   `tests/integration/groups.test.ts` (owner auto-membership, 15-member cap, group/membership
-  RLS, owner-protection, co-member profile reads, soft-delete read filter).
+  RLS, owner-protection, co-member profile reads, soft-delete read filter), and
+  `tests/integration/invites.test.ts` (token-link invites: admin-only `group_invites` RLS,
+  `get_invite_preview` to anon + invalid/expired/revoked/used-up cases, `redeem_group_invite`
+  open→active / approval→pending / idempotency / use_count / anon-rejected; pending invites:
+  signup auto-join, case-insensitive email match, `(group_id, email)` uniqueness, admin-only
+  insert). **28 tests green** as of 2026-06-04.
 - **No UI tests yet** — there is no app UI beyond the landing page, so per strategy we don't
   test UI this phase. The Playwright/visual layer is added when P1's auth + group UI lands.
 

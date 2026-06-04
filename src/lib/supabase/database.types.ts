@@ -1,8 +1,3 @@
-// ----------------------------------------------------------------------------
-// GENERATED FILE — do not edit by hand.
-// Regenerate after every migration with the Supabase MCP `generate_typescript_types`
-// tool, or: `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`
-// ----------------------------------------------------------------------------
 export type Json =
   | string
   | number
@@ -12,13 +7,87 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
+      group_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          group_id: string
+          id: string
+          join_code: string | null
+          max_uses: number | null
+          revoked_at: string | null
+          token: string
+          use_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          group_id: string
+          id?: string
+          join_code?: string | null
+          max_uses?: number | null
+          revoked_at?: string | null
+          token: string
+          use_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          group_id?: string
+          id?: string
+          join_code?: string | null
+          max_uses?: number | null
+          revoked_at?: string | null
+          token?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_invites_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           group_id: string
@@ -108,6 +177,51 @@ export type Database = {
           },
         ]
       }
+      pending_invites: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string | null
+          group_id: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["member_role"]
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string | null
+          group_id: string
+          id?: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["member_role"]
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string | null
+          group_id?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["member_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_invites_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -155,8 +269,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_invite_preview: {
+        Args: { p_token: string }
+        Returns: {
+          group_avatar_url: string
+          group_id: string
+          group_name: string
+          inviter_name: string
+          join_policy: Database["public"]["Enums"]["join_control"]
+          member_count: number
+        }[]
+      }
       is_group_admin: { Args: { p_group_id: string }; Returns: boolean }
       is_group_member: { Args: { p_group_id: string }; Returns: boolean }
+      redeem_group_invite: {
+        Args: { p_token: string }
+        Returns: {
+          group_id: string
+          status: Database["public"]["Enums"]["member_status"]
+        }[]
+      }
       shares_group_with: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {
@@ -288,6 +420,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       join_control: ["open", "approval"],
@@ -296,3 +431,4 @@ export const Constants = {
     },
   },
 } as const
+
