@@ -26,8 +26,11 @@ follow-ups (avatar upload + account deletion). Built this session:
 - **Setup:** [`docs/GOOGLE-SETUP.md`](GOOGLE-SETUP.md). Without `GOOGLE_CLIENT_ID/SECRET` the
   Calendars page shows a "not configured" notice and the rest of the app is unaffected.
 
-**Migrations are applied to BOTH local and the hosted PRODUCTION project** (4 new, ledger versions
-`20260604141324`→`141504`; local filenames match the remote ledger). `get_advisors(security)` is
+**Migrations are applied to BOTH local and the hosted PRODUCTION project** (5 new, ledger versions
+`20260604141324`→`145228`; local filenames match the remote ledger). The last one adds explicit
+`service_role` grants on server-written tables (calendars/events/groups) — the hosted project has
+auto-expose OFF, so those grants aren't implicit like they are locally (a parity gap now guarded by
+`tests/unit/service-role-grants.test.ts`). `get_advisors(security)` is
 clean except the intentional `security_definer_function_executable` WARNs and the intentional
 `calendar_secrets` RLS-enabled-no-policy INFO (service-role-only by design, §9-C). Applying tested
 migrations to the hosted project via MCP is now standing practice (test locally first). The live
@@ -50,7 +53,7 @@ intentional `security_definer_function_executable` WARNs.
 **Next: Phase 3** — multi-date proposals, nudges, quorum, calendar write-back (`DATA-MODEL.md §10`).
 (Phase 2 calendar sync is done — see the TL;DR above and `docs/GOOGLE-SETUP.md`.)
 
-**Testing.** `docs/TESTING.md` is the durable strategy: **27 unit + 53 integration (80) green**,
+**Testing.** `docs/TESTING.md` is the durable strategy: **35 unit + 53 integration (88) green**,
 plus a **Playwright e2e/visual layer** (`npm run test:e2e`) that drives the whole loop as a user,
 screenshots every screen, and deletes the screenshots after review. Run integration/e2e against
 the **local** stack (`npm run db:start` → `npm run db:reset` → `npm run test` / `npm run

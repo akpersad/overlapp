@@ -106,7 +106,10 @@ At the close of each phase:
   (initials / display-name / avatar colour), `rrule.test.ts` (RRULE build/describe/parse
   round-trips), `google.test.ts` (OAuth consent-URL building + Google→`events` mapping:
   busy-by-default, transparent/working-location → free, eventType→category, all-day spans,
-  cancellations, dropped rows). **27 tests.** (`server-only` is aliased to a stub —
+  cancellations, dropped rows), `service-role-grants.test.ts` (a **local/prod parity guard**:
+  statically asserts every table the service-role client writes to has an explicit
+  `grant … to service_role` in a migration — a live check can't catch this because the local
+  stack grants service_role implicitly). **35 tests.** (`server-only` is aliased to a stub —
   `tests/_stubs/server-only.ts` — so server-only modules' pure logic is unit-testable.)
 - **Integration** (local stack): `profiles.test.ts` (signup trigger + profile RLS),
   `groups.test.ts` (owner auto-membership, 15-member cap, RLS, owner-protection, soft-delete

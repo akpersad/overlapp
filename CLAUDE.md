@@ -76,14 +76,16 @@ helper. App: `/calendars` page, `src/lib/google/{oauth,calendar,sync}.ts`, `src/
 `/api/calendars/google/callback`, `/api/cron/sync-calendars`. **Setup:** [`docs/GOOGLE-SETUP.md`](docs/GOOGLE-SETUP.md)
 (needs `GOOGLE_CLIENT_ID/SECRET`, `CRON_SECRET`; absent → Calendars page shows a "not configured" notice).
 
-**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **27 unit + 53 integration (80)** green, plus a
+**Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **35 unit + 53 integration (88)** green, plus a
 **Playwright e2e/visual** layer (`npm run test:e2e`) driving the whole loop as a user against the
 local stack (screenshots reviewed then deleted). `tsc`, `eslint`, `next build` all green. Scripts:
 `test`, `test:unit`, `test:integration`, `test:e2e`, `db:start`/`db:reset`/`db:stop`.
 
 **Migrations applied to BOTH local and the hosted PRODUCTION project via the Supabase MCP**
-(4 new, ledger versions `20260604141324`→`141504`: calendar tables, availability-RPC extension,
-avatars bucket, + an avatars-bucket hardening that drops the broad public-read/list policy).
+(5 new, ledger versions `20260604141324`→`145228`: calendar tables, availability-RPC extension,
+avatars bucket, an avatars-bucket hardening that drops the broad public-read/list policy, and
+explicit `service_role` grants on server-written tables — needed because the hosted project has
+auto-expose OFF, a local/prod parity gap now guarded by `tests/unit/service-role-grants.test.ts`).
 `get_advisors(security)` is clean except the intentional `security_definer_function_executable`
 WARNs and the **intentional** `calendar_secrets` RLS-enabled-no-policy INFO (that table is
 service-role-only by design, §9-C). Local file names match the remote ledger versions. The live
