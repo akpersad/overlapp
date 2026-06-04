@@ -89,8 +89,10 @@ helpers), `notifications`, `event_writebacks` (write-back idempotency ledger), `
 and `group_heatmap` extended with `quorum`/`meets_quorum`. App: `/groups/[id]/proposals/new` +
 `/groups/[id]/proposals/[proposalId]`, `/notifications` (inbox + nav badge), `src/lib/actions/{proposals,notifications}.ts`,
 `src/lib/notifications.ts`, `writeBackProposal` + `insertCalendarEvent` in `src/lib/google/`.
-⚠️ Write-back needs the writable `calendar.events` scope (now in `GOOGLE_SCOPES`); pre-P3
-connections must reconnect (`docs/GOOGLE-SETUP.md`).
+⚠️ Write-back needs the writable `calendar.events` scope (in `GOOGLE_SCOPES`; **declared in the
+Google Console → Data Access on 2026-06-04**). Pre-P3 connections hold read-only tokens and must
+disconnect + reconnect to grant write access (`docs/GOOGLE-SETUP.md`). The live lock→write-back
+round-trip is not yet verified end-to-end.
 
 **Testing** (see [`docs/TESTING.md`](docs/TESTING.md)): **39 unit + 65 integration (104)** green, plus a
 **Playwright e2e/visual** layer (`npm run test:e2e`) driving the whole loop as a user against the

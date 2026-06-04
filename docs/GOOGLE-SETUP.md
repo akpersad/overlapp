@@ -116,8 +116,12 @@ safe. Cron only runs on a deployed Vercel app — it does nothing locally / in
 ## 5. Verifying locally
 
 OAuth requires real Google credentials, so the live round-trip is a manual check.
-**Status: ✅ verified end-to-end against the production Supabase project on
-2026-06-04.** To repeat it:
+**Status: ✅ read sync verified end-to-end against the production Supabase project
+on 2026-06-04.** The Phase 3 **`calendar.events`** (write-back) scope was added to
+the consent screen's **Data Access** on **2026-06-04**, so new connections request
+and grant it — but the live **lock → write-back** round-trip is **not yet verified**
+end-to-end (it needs a fresh reconnect to pick up the write scope, then a locked
+proposal). Read-sync repro:
 
 1. Fill in the env above (use a Google account added under **Test users**).
 2. `npm run dev` and open `http://localhost:3000`. Sign up / log in → **Calendars**
@@ -125,6 +129,11 @@ OAuth requires real Google credentials, so the live round-trip is a manual check
    screen → Advanced → continue).
 3. You should land on `/calendars?connected=1` with your events listed (Free/Busy
    badges + override dropdowns) and each group's heatmap reflecting real busy time.
+4. **Write-back:** toggle **Write-back on** for the calendar, create + lock a
+   proposal in a group, and confirm the event appears in the real Google calendar.
+   A calendar connected *before* the scope was added must **Disconnect + reconnect**
+   first (otherwise its token is read-only and write-back fails with
+   `insufficient_scope`).
 
 > **Which Supabase does `next dev` hit?** It reads `.env.local`, which points at
 > the **hosted production** project — so a local connect writes real rows to prod.

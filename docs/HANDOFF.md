@@ -23,8 +23,12 @@ branch `feature/phase-3-proposals` (off `main` @ `40a76cc`, which now has P1+P2 
 - **Calendar write-back** — opt-in per calendar (`calendars.writeback_enabled`). On lock,
   `writeBackProposal` (service role) pushes the chosen slot to each opted-in member's Google calendar
   (`insertCalendarEvent`), idempotent via the `event_writebacks` ledger, best-effort per member.
-  ⚠️ Needs the writable `calendar.events` scope (now in `GOOGLE_SCOPES`) — **pre-P3 connections must
-  reconnect** (documented in `GOOGLE-SETUP.md`).
+  The writable `calendar.events` scope is in `GOOGLE_SCOPES` **and has been declared in the Google
+  Console → Data Access (done by the user, 2026-06-04)**, so new connections request + grant it.
+  ⚠️ **Pre-P3 connections still hold read-only tokens — they must disconnect + reconnect** to grant
+  write access (else write-back fails with `insufficient_scope`; the Calendars page surfaces a
+  reconnect hint). The live lock→write-back round-trip against a real calendar is **not yet
+  verified end-to-end** (the OAuth/scope setup is in place; a real reconnect + lock would confirm it).
 - **Tests:** `tests/integration/proposals.test.ts` (12) covers the RPCs + RLS + quorum heatmap; the
   service-role parity guard now lists `notifications` + `event_writebacks`. **39 unit + 65
   integration (104)** green; `tsc`/`eslint`/`next build` green; e2e green (run with Google env unset).
