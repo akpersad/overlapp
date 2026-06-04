@@ -9,8 +9,12 @@ import { syncDueCalendars } from "@/lib/google/sync";
 // pinger sending `Authorization: Bearer <CRON_SECRET>`.
 //
 // Runs on Node (the service-role worker is server-only). Force dynamic so it's
-// never statically cached.
+// never statically cached. maxDuration is capped at 60s on Vercel's Hobby (free)
+// plan — syncs run sequentially, so if the user base ever outgrows a 60s window,
+// batch the work (the sync is idempotent, so a partial run just catches up next
+// time). On Hobby the cron itself can only fire once/day (see docs/GOOGLE-SETUP).
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 async function handle(request: NextRequest) {
   const secret = process.env.CRON_SECRET;

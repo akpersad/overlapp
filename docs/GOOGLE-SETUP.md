@@ -72,20 +72,30 @@ a "not configured" notice and the rest of the app works normally.
 `app/api/cron/sync-calendars` syncs every calendar not synced in the last 30 min.
 Protect it with `CRON_SECRET` and point a scheduler at it.
 
-**Vercel Cron** — add to `vercel.json`:
+**Vercel Cron** — already wired in `vercel.json` (committed):
 
 ```json
-{ "crons": [{ "path": "/api/cron/sync-calendars", "schedule": "*/30 * * * *" }] }
+{ "crons": [{ "path": "/api/cron/sync-calendars", "schedule": "0 6 * * *" }] }
 ```
 
-Vercel automatically sends the `CRON_SECRET` as a bearer token when the env var is
-set. For any other scheduler (GitHub Actions, cron-job.org, …) send the header
-yourself:
+⚠️ **Free-tier (Hobby) limit:** Vercel Hobby cron jobs can only run **once per
+day** — a more frequent expression (e.g. `*/30 * * * *`) **fails deployment**.
+So on the free plan the committed schedule is daily (`0 6 * * *`, fired sometime
+06:00–06:59 UTC). That only affects *background* freshness: connecting a calendar
+and the **Sync now** button still pull on demand any time. To re-sync more often
+without paying for Vercel Pro, either upgrade, or have a free external scheduler
+(e.g. cron-job.org, GitHub Actions) hit the endpoint every N minutes:
 
 ```bash
 curl -fsS -H "Authorization: Bearer $CRON_SECRET" \
   https://YOUR_DOMAIN/api/cron/sync-calendars
 ```
+
+When `CRON_SECRET` is set in the Vercel project, Vercel **automatically** sends it
+as the `Authorization: Bearer …` header on its own cron invocations (the route
+checks exactly that). The sync is idempotent, so a missed or duplicated run is
+safe. Cron only runs on a deployed Vercel app — it does nothing locally / in
+`next dev`.
 
 ## 5. Verifying locally
 
