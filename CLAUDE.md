@@ -36,6 +36,7 @@ source of truth for the problem, decisions, user journeys, and roadmap.
 P1 Foundation (auth, groups, invite, manual blocks, group heatmap — build end-to-end first) →
 P2 calendar sync + overrides → P3 multi-date proposals, nudges, quorum, write-back →
 P4 PWA polish (installable, push, offline, recurring).
+Non-MVP / post-launch backlog (free-tier-first): [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
 
 ## Status / next step
 **Resuming a session? Read [`docs/HANDOFF.md`](docs/HANDOFF.md) first** — full current-state handoff.
@@ -80,10 +81,12 @@ helper. App: `/calendars` page, `src/lib/google/{oauth,calendar,sync}.ts`, `src/
 local stack (screenshots reviewed then deleted). `tsc`, `eslint`, `next build` all green. Scripts:
 `test`, `test:unit`, `test:integration`, `test:e2e`, `db:start`/`db:reset`/`db:stop`.
 
-**Migrations applied LOCALLY only so far** (3 new: calendar tables, availability-RPC extension,
-avatars bucket). They are **not yet applied to the hosted PRODUCTION project** — apply via the
-Supabase MCP `apply_migration` after review (filenames already match the timestamp scheme so
-`supabase db push` won't replay), then regenerate `database.types.ts`. The live Google OAuth
-round-trip needs real credentials (manual verification per `GOOGLE-SETUP.md §5`).
+**Migrations applied to BOTH local and the hosted PRODUCTION project via the Supabase MCP**
+(4 new, ledger versions `20260604141324`→`141504`: calendar tables, availability-RPC extension,
+avatars bucket, + an avatars-bucket hardening that drops the broad public-read/list policy).
+`get_advisors(security)` is clean except the intentional `security_definer_function_executable`
+WARNs and the **intentional** `calendar_secrets` RLS-enabled-no-policy INFO (that table is
+service-role-only by design, §9-C). Local file names match the remote ledger versions. The live
+Google OAuth round-trip still needs real credentials (manual verification per `GOOGLE-SETUP.md §5`).
 
 **Next: Phase 3** — multi-date proposals, nudges, quorum, calendar write-back (`DATA-MODEL.md §10`).

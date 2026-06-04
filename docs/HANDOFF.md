@@ -26,10 +26,13 @@ follow-ups (avatar upload + account deletion). Built this session:
 - **Setup:** [`docs/GOOGLE-SETUP.md`](GOOGLE-SETUP.md). Without `GOOGLE_CLIENT_ID/SECRET` the
   Calendars page shows a "not configured" notice and the rest of the app is unaffected.
 
-**Migrations are applied LOCALLY only** (3 new files; `db:reset` clean, types regenerated). They
-are **NOT yet on the hosted PRODUCTION project** — apply via Supabase MCP `apply_migration` after
-review, then regenerate types. The live Google OAuth round-trip needs real credentials (manual
-check, `GOOGLE-SETUP.md §5`). **Next: Phase 3** (multi-date proposals — `DATA-MODEL.md §10`).
+**Migrations are applied to BOTH local and the hosted PRODUCTION project** (4 new, ledger versions
+`20260604141324`→`141504`; local filenames match the remote ledger). `get_advisors(security)` is
+clean except the intentional `security_definer_function_executable` WARNs and the intentional
+`calendar_secrets` RLS-enabled-no-policy INFO (service-role-only by design, §9-C). Applying tested
+migrations to the hosted project via MCP is now standing practice (test locally first). The live
+Google OAuth round-trip needs real credentials (manual check, `GOOGLE-SETUP.md §5`).
+**Next: Phase 3** (multi-date proposals — `DATA-MODEL.md §10`).
 
 ---
 
