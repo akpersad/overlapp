@@ -6,10 +6,20 @@
 ## TL;DR — where we are
 
 Product spec and data model are **finalized**. Backend infra (Supabase project, Resend auth
-email, Supabase MCP server) is **set up**. **Phase 1 is underway:** the `profiles` migration
-(table + signup trigger + RLS) is applied, and the `@supabase/ssr` client layer + `src/proxy.ts`
-session/route gate are scaffolded. The repo is no longer the stock starter. The immediate next
-task is the **`groups` + `group_members`** migration (continuing the `DATA-MODEL.md §12` order).
+email, Supabase MCP server) is **set up**. **Phase 1 is underway:** `profiles` and
+`groups`+`group_members` migrations are applied (with RLS, triggers, and two follow-up bug-fix
+migrations), the `@supabase/ssr` client layer + `src/proxy.ts` session/route gate are scaffolded,
+and a **test harness is in place** (Vitest unit + integration against a local Supabase stack;
+see `docs/TESTING.md`). The repo is no longer the stock starter. The immediate next task is the
+**`group_invites` + `pending_invites`** migration (continuing the `DATA-MODEL.md §12` order).
+
+**Testing.** `docs/TESTING.md` is the durable strategy: unit + integration now (16 tests green),
+Playwright visual/e2e once UI exists. Run integration tests against the **local** stack
+(`npm run db:start` then `npm run test`). After any migration: `npm run db:reset` + regenerate
+DB types. Don't run integration tests against the hosted project.
+
+**Soft-delete TODO (caught by tests):** a direct `UPDATE deleted_at` is blocked by RLS, so group
+dissolution needs a `SECURITY DEFINER` RPC — build it with group management (`DATA-MODEL.md §9-E`).
 
 ## Why this handoff exists
 
@@ -95,12 +105,15 @@ The previously-orphaned dep additions (`supabase` devDep, `@supabase/supabase-js
 ## NEXT STEPS (in order) — start here
 
 Steps 1–3 (confirm MCP, `profiles` migration, `@supabase/ssr` + proxy scaffold) are **DONE** — see
-"Phase 1 — application code" above. Continue from here:
+"Phase 1 — application code" above. Step 1 below (`groups` + `group_members`) is also **DONE**
+(migrations `20260603210859_create_groups_and_members` + `20260603211217_fix_membership_helper_grants`;
+enums, 15-cap trigger, owner-auto-membership trigger, `SECURITY DEFINER` membership helpers that
+break RLS recursion, full RLS, co-member profile-read policy; verified by a transactional smoke
+test; advisors clean). Continue from step 2:
 
-1. **`groups` + `group_members`** migration (`DATA-MODEL.md §3`): the two tables, the enums they
-   need (`member_role`, `member_status`, `join_control`), the **15-member-cap** `before insert`
-   trigger, and RLS (members read; admins/owner write). This also unlocks the **deferred
-   co-member profile-read policy** — add it to `profiles` here now that `group_members` exists.
+1. ~~**`groups` + `group_members`** migration (`DATA-MODEL.md §3`): two tables, the enums
+   (`member_role`, `member_status`, `join_control`), the **15-member-cap** trigger, and RLS
+   (members read; admins/owner write); unlocks the co-member profile-read policy.~~ **DONE.**
 2. **`group_invites` + `pending_invites`** (`§4`–`§5`): token-link invites, email-keyed pending
    invites, the invite-preview `security definer` RPC, and **extend `handle_new_user()`** to
    consume `pending_invites` on signup (the auto-join).

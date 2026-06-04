@@ -225,6 +225,13 @@ strategy is the main open question (§9-A).
 - **E — Deletion.** **Soft-delete** (`deleted_at` on `profiles` and `groups`); every RLS policy
   filters it; purge on a schedule. Keeps proposal/membership history and supports the
   "transfer or dissolve owned groups" flow (spec §8).
+  - ⚠️ **Write path (learned via integration tests, 2026-06-03):** because every read policy
+    filters `deleted_at is null`, an owner/admin **cannot** soft-delete via a direct
+    `UPDATE … SET deleted_at = …` — PostgreSQL requires an UPDATE's resulting row to still
+    satisfy the SELECT policy, so the row would update itself out of visibility and the write is
+    rejected (42501). **Soft-delete / dissolution must go through a `SECURITY DEFINER` RPC**
+    (which sets `deleted_at`, handles owner transfer-vs-dissolve, and bypasses RLS). To be built
+    with group management. See `docs/TESTING.md` → Findings.
 
 ## 10. Proposals (multi-date scheduling)  *(P3 — included for a coherent whole)*
 

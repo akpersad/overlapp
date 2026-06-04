@@ -53,8 +53,22 @@ RLS, advisor-clean) applied via Supabase MCP and version-controlled in `supabase
 types) + `src/proxy.ts` (Next 16 renamed `middleware`→`proxy`) for session refresh + route gating;
 starter leftovers cleaned (layout metadata, Geist font). `tsc` + `next build` both green.
 
-**Next:** `groups` + `group_members` (+ 15-member-cap trigger; also unlocks the deferred
-co-member profile-read policy) → `group_invites` & `pending_invites` (+ auto-join, extends
-`handle_new_user()`) → `manual_blocks` → busy-interval RPCs → heatmap, then the auth/group UI.
+Also done: `groups` + `group_members` migration — enums (`member_role`/`member_status`/
+`join_control`), 15-member-cap trigger, owner-auto-membership trigger, `SECURITY DEFINER`
+membership helpers (`is_group_member`/`is_group_admin`/`shares_group_with`) that break RLS
+recursion, full RLS posture, and the now-unblocked co-member profile-read policy. Two follow-up
+migrations fixed bugs the tests caught: re-granted helper `EXECUTE` to `authenticated`, and
+admitted a group to its owner in the SELECT policy so `insert().select()` works.
+
+**Testing set up** (see [`docs/TESTING.md`](docs/TESTING.md) — the durable strategy). Vitest with
+two projects: **unit** (pure logic) and **integration** (drives the real supabase-js → RLS path
+as actual signed-in users, against a **local Supabase stack** via Docker). 16 tests green, build
+clean. Strategy: test what exists at the end of every phase; the Playwright/visual (run-as-user +
+screenshot, then delete) layer is added once UI exists. Scripts: `test`, `test:unit`,
+`test:integration`, `db:start`/`db:reset`/`db:stop`.
+
+**Next:** `group_invites` & `pending_invites` (+ auto-join, extends `handle_new_user()`;
+invite-preview `security definer` RPC) → `manual_blocks` → busy-interval RPCs → heatmap, then
+the auth/group UI.
 Migrations go through the Supabase MCP **and** as files in `supabase/migrations/` (filenames must
 match the remote ledger version so `supabase db push` won't replay them).

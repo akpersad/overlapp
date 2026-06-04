@@ -4,7 +4,8 @@
 // referenced as static `process.env.NEXT_PUBLIC_*` literals for Next to inline
 // them into the client bundle, so we read them here rather than dynamically.
 
-function assertEnv(value: string | undefined, name: string): string {
+// Exported for unit testing; also used by the constants below.
+export function assertEnv(value: string | undefined, name: string): string {
   if (!value) {
     throw new Error(
       `Missing environment variable ${name}. Copy .env.example to .env.local and fill it in.`,
