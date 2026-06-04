@@ -20,7 +20,13 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 // Paths reachable without a session. Matched as prefixes. Auth + invite-preview
 // routes get added here as they're built (see DATA-MODEL.md §4 invite preview).
-const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/invite"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/verify-email",
+  "/auth",
+  "/invite",
+];
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true; // landing page

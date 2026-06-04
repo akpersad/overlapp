@@ -177,6 +177,47 @@ export type Database = {
           },
         ]
       }
+      manual_blocks: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          label: string | null
+          rrule: string | null
+          starts_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          label?: string | null
+          rrule?: string | null
+          starts_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          label?: string | null
+          rrule?: string | null
+          starts_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_blocks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_invites: {
         Row: {
           created_at: string
@@ -269,6 +310,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dissolve_group: { Args: { p_group_id: string }; Returns: undefined }
+      expand_block_occurrences: {
+        Args: {
+          p_end: string
+          p_from: string
+          p_rrule: string
+          p_start: string
+          p_to: string
+        }
+        Returns: {
+          occ_end: string
+          occ_start: string
+        }[]
+      }
       get_invite_preview: {
         Args: { p_token: string }
         Returns: {
@@ -280,8 +335,40 @@ export type Database = {
           member_count: number
         }[]
       }
+      group_busy_intervals: {
+        Args: { p_from: string; p_group_id: string; p_to: string }
+        Returns: {
+          ends_at: string
+          starts_at: string
+          user_id: string
+        }[]
+      }
+      group_heatmap: {
+        Args: {
+          p_from: string
+          p_group_id: string
+          p_slot_minutes?: number
+          p_to: string
+        }
+        Returns: {
+          busy_count: number
+          everyone_free: boolean
+          free_count: number
+          slot_end: string
+          slot_start: string
+          total_members: number
+        }[]
+      }
+      has_group_membership: { Args: { p_group_id: string }; Returns: boolean }
       is_group_admin: { Args: { p_group_id: string }; Returns: boolean }
       is_group_member: { Args: { p_group_id: string }; Returns: boolean }
+      my_busy_intervals: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          ends_at: string
+          starts_at: string
+        }[]
+      }
       redeem_group_invite: {
         Args: { p_token: string }
         Returns: {
@@ -290,6 +377,10 @@ export type Database = {
         }[]
       }
       shares_group_with: { Args: { p_user_id: string }; Returns: boolean }
+      transfer_group_ownership: {
+        Args: { p_group_id: string; p_new_owner: string }
+        Returns: undefined
+      }
     }
     Enums: {
       join_control: "open" | "approval"

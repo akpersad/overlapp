@@ -100,19 +100,24 @@ At the close of each phase:
    screenshots**.
 6. Update `docs/HANDOFF.md` with what was verified.
 
-## Current coverage (Phase 1, as of 2026-06-03)
+## Current coverage (Phase 1 complete, as of 2026-06-04)
 
-- **Unit:** `tests/unit/config.test.ts` — Supabase env-var validation.
-- **Integration:** `tests/integration/profiles.test.ts` (signup trigger + profile RLS),
-  `tests/integration/groups.test.ts` (owner auto-membership, 15-member cap, group/membership
-  RLS, owner-protection, co-member profile reads, soft-delete read filter), and
-  `tests/integration/invites.test.ts` (token-link invites: admin-only `group_invites` RLS,
-  `get_invite_preview` to anon + invalid/expired/revoked/used-up cases, `redeem_group_invite`
-  open→active / approval→pending / idempotency / use_count / anon-rejected; pending invites:
-  signup auto-join, case-insensitive email match, `(group_id, email)` uniqueness, admin-only
-  insert). **28 tests green** as of 2026-06-04.
-- **No UI tests yet** — there is no app UI beyond the landing page, so per strategy we don't
-  test UI this phase. The Playwright/visual layer is added when P1's auth + group UI lands.
+- **Unit** (`npm run test:unit`): `config.test.ts` (env validation), `format.test.ts`
+  (initials / display-name / avatar colour), `rrule.test.ts` (RRULE build/describe/parse
+  round-trips). **16 tests.**
+- **Integration** (local stack): `profiles.test.ts` (signup trigger + profile RLS),
+  `groups.test.ts` (owner auto-membership, 15-member cap, RLS, owner-protection, soft-delete
+  read filter), `invites.test.ts` (token-link + pending-invite flows; now also pins
+  pending-member visibility), `availability.test.ts` (manual_blocks owner-only RLS, RRULE
+  expansion via `my_busy_intervals`, de-identified `group_busy_intervals`, `group_heatmap`
+  everyone-free / counts / window-cap / member-gating), `group-management.test.ts`
+  (`dissolve_group`, `transfer_group_ownership`, role-integrity guard). **41 tests.**
+- **E2E + visual** (`npm run test:e2e`): `tests/e2e/core-loop.spec.ts` drives the full P1 loop
+  as a real user against the LOCAL stack — landing → signup → onboarding → dashboard → create
+  group → set availability → heatmap reflects it → public invite preview — screenshotting every
+  screen to `./screenshots` (gitignored), then the screenshots are reviewed and deleted.
+  Playwright boots `next dev` with env pointed at the local Supabase stack (overriding
+  `.env.local`, which targets hosted). Mobile viewport (Pixel 7) — Overlapp is mobile-first.
 
 ## Findings (bugs caught by these tests)
 
@@ -127,6 +132,10 @@ At the close of each phase:
 - **Soft-delete has no direct-UPDATE write path.** PostgreSQL requires an UPDATE's resulting row
   to still satisfy the SELECT policy; since the policy filters `deleted_at is null`, an admin
   setting `deleted_at` would update the row out of their own visibility, so Postgres rejects it
-  (42501). Group dissolution must therefore go through a `SECURITY DEFINER` RPC (spec §8,
-  `DATA-MODEL.md §9-E`) — **TODO when group management lands**. Tests pin the current behavior
-  (direct update rejected; read filter hides rows soft-deleted via the privileged path).
+  (42501). **RESOLVED:** group dissolution now goes through the `dissolve_group(uuid)` SECURITY
+  DEFINER RPC (migration `…_create_group_management_rpcs`); `group-management.test.ts` covers it.
+- **Pending members were invisible to themselves.** `is_group_member()` requires `status =
+  'active'`, so a member awaiting approval couldn't read their own membership or the group, and
+  the post-redeem redirect 404'd. Fixed by migration `…_pending_member_visibility` (a self-row
+  SELECT policy + an any-status `has_group_membership()` group SELECT policy); availability RPCs
+  still gate on active membership, so a pending user sees the group but no member availability.

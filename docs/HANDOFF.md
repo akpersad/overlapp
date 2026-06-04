@@ -5,19 +5,27 @@
 
 ## TL;DR — where we are
 
-Product spec and data model are **finalized**. Backend infra (Supabase project, Resend auth
-email, Supabase MCP server) is **set up**. **Phase 1 is underway:** `profiles`,
-`groups`+`group_members`, and `group_invites`+`pending_invites` migrations are applied (with RLS,
-triggers, RPCs, and follow-up bug-fix migrations), the `@supabase/ssr` client layer +
-`src/proxy.ts` session/route gate are scaffolded, and a **test harness is in place** (Vitest unit
-+ integration against a local Supabase stack; see `docs/TESTING.md`). The repo is no longer the
-stock starter. The immediate next task is the **`manual_blocks`** migration (continuing the
-`DATA-MODEL.md §12` order), then busy-interval RPCs + heatmap, then the auth/group UI.
+**Phase 1 is COMPLETE and tested (2026-06-04).** The full core loop works end-to-end: auth
+(signup/login/verify/logout), onboarding, profile, dashboard, group create/edit/manage, the
+invite flow (Web Share token links + email-keyed pending invites + public preview + redeem),
+the manual-block availability editor (incl. weekly RRULE), and the **group heatmap** rendered in
+the viewer's local time. Backend: all P1 migrations applied **locally and to the hosted project
+via MCP** — `manual_blocks`, the availability RPCs (`expand_block_occurrences` RRULE expander,
+`my_busy_intervals`, de-identified `group_busy_intervals`, on-the-fly `group_heatmap`), the group
+management RPCs (`dissolve_group` = the §9-E soft-delete write path, `transfer_group_ownership`,
+a role-integrity guard), and a `pending_member_visibility` fix. Security advisors: only the
+intentional `security_definer_function_executable` WARNs.
 
-**Testing.** `docs/TESTING.md` is the durable strategy: unit + integration now (28 tests green),
-Playwright visual/e2e once UI exists. Run integration tests against the **local** stack
-(`npm run db:start` then `npm run test`). After any migration: `npm run db:reset` + regenerate
-DB types. Don't run integration tests against the hosted project.
+**Next: Phase 2** — Google Calendar OAuth + import (busy-by-default), the free/blocked override
+system (per-event + per-category), background re-sync. See `DATA-MODEL.md §6` (calendars/events/
+category_overrides) and the spec roadmap.
+
+**Testing.** `docs/TESTING.md` is the durable strategy: **16 unit + 41 integration (57) green**,
+plus a **Playwright e2e/visual layer** (`npm run test:e2e`) that drives the whole loop as a user,
+screenshots every screen, and deletes the screenshots after review. Run integration/e2e against
+the **local** stack (`npm run db:start` → `npm run db:reset` → `npm run test` / `npm run
+test:e2e`). After any migration: `npm run db:reset` + regenerate DB types. Never run against the
+hosted project.
 
 **Soft-delete TODO (caught by tests):** a direct `UPDATE deleted_at` is blocked by RLS, so group
 dissolution needs a `SECURITY DEFINER` RPC — build it with group management (`DATA-MODEL.md §9-E`).
@@ -140,10 +148,18 @@ test; advisors clean). Continue from step 2:
    Advisor note: `get_invite_preview`/`redeem_group_invite` show WARN
    `*_security_definer_function_executable` — **intentional** (client-callable RPCs), same accepted
    pattern as the existing `is_group_*`/`shares_group_with` helpers.
-3. **`manual_blocks`** (`§7`) → **`my_busy_intervals` / `group_busy_intervals`** + **heatmap RPC**
-   (`§8`, on-the-fly per `§9-B`).  ← **START HERE**
-4. Then the UI: auth (email+password first), group create/join + **invite share/preview/redeem
-   flow** (token links via Web Share API; the RPCs above are ready), manual-block editor, heatmap.
+3. ~~**`manual_blocks`** (`§7`) → **`my_busy_intervals` / `group_busy_intervals`** + **heatmap
+   RPC** (`§8`, on-the-fly per `§9-B`).~~ **DONE** — migrations `…_create_manual_blocks`,
+   `…_create_availability_rpcs`, `…_create_group_management_rpcs` (+ `dissolve_group` resolving the
+   §9-E soft-delete TODO), `…_pending_member_visibility`. Integration: `availability.test.ts`,
+   `group-management.test.ts`.
+4. ~~Then the UI: auth, group create/join + invite share/preview/redeem flow, manual-block
+   editor, heatmap.~~ **DONE** — full app under `src/app/` (route group `(app)` for the
+   authenticated shell; `login`/`signup`/`verify-email`/`auth/confirm`/`invite/[token]` public).
+   Server Actions in `src/lib/actions/`, DAL in `src/lib/auth.ts`, pure helpers in
+   `src/lib/{format,rrule,ui}.ts`. Playwright e2e in `tests/e2e/`.
+
+**→ Phase 1 is finished. Continue with Phase 2 (calendar sync) — see TL;DR above.**
 
 **Migration workflow reminder:** apply via Supabase MCP `apply_migration` **and** save a matching
 file in `supabase/migrations/` whose timestamp matches the version the ledger recorded (check with

@@ -183,12 +183,30 @@ describe("invites — token links + pending invites", () => {
     expect(error).toBeNull();
     expect(data?.[0]).toMatchObject({ group_id: group.id, status: "pending" });
 
-    // Pending members are not active members, so the group is not yet visible.
+    // A pending member CAN see the group's basic row (so they see "awaiting
+    // approval" and the post-redeem redirect resolves) — see migration
+    // pending_member_visibility — but gets NO member availability: the heatmap
+    // RPC still gates on active membership.
     const { data: g } = await joiner.client
       .from("groups")
       .select("id")
       .eq("id", group.id);
-    expect(g).toHaveLength(0);
+    expect(g).toHaveLength(1);
+
+    const { data: heat } = await joiner.client.rpc("group_heatmap", {
+      p_group_id: group.id,
+      p_from: "2026-07-01T00:00:00Z",
+      p_to: "2026-07-02T00:00:00Z",
+    });
+    expect(heat).toHaveLength(0);
+
+    // They can read their OWN pending membership row (self-select policy).
+    const { data: ownRow } = await joiner.client
+      .from("group_members")
+      .select("status")
+      .eq("group_id", group.id)
+      .eq("user_id", joiner.id);
+    expect(ownRow?.[0]?.status).toBe("pending");
   });
 
   it("is idempotent: re-redeeming returns current status, no extra use", async () => {
