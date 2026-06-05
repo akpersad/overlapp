@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -87,6 +87,20 @@ export function Heatmap({
   slotMinutes: number;
 }) {
   const [view, setView] = useState<View>("month");
+  // The whole heatmap is anchored on the browser's clock + time zone (today,
+  // the period label, the day grid). That makes it inherently non-deterministic
+  // between the SSR pass (server clock/tz) and hydration (browser clock/tz), so
+  // we render a stable placeholder until mounted and only draw the real grid on
+  // the client — avoiding a hydration mismatch. (Data is fetched client-side in
+  // an effect anyway, so SSR never had real content to show.)
+  // useSyncExternalStore's server/client snapshot pair gives us "false during
+  // SSR + first client render, true after hydration" without a setState-in-
+  // effect, which the value-never-changes subscription makes a no-op.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   // Anchor day as epoch ms (stable across renders, clean effect dep). Nav shifts
   // it by the view's unit; switching view keeps the anchor so you stay in place.
   const [anchorMs, setAnchorMs] = useState(() => startOfDay(new Date()).getTime());
@@ -287,6 +301,18 @@ export function Heatmap({
           });
   const resetLabel =
     view === "month" ? "This month" : view === "week" ? "This week" : "Today";
+
+  // Until mounted, render a clock/tz-free placeholder so the SSR and first
+  // client render agree (see the `mounted` note above).
+  if (!mounted) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="overflow-x-auto rounded-lg bg-surface-sunken p-3">
+          <p className="text-sm text-ink-muted">Loading availability…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">

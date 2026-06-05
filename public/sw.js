@@ -12,7 +12,7 @@
  * GET navigations and Next static assets. Bump CACHE_VERSION to invalidate.
  */
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const STATIC_CACHE = `overlapp-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `overlapp-pages-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
