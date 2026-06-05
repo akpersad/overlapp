@@ -5,6 +5,29 @@
 
 ## TL;DR — where we are
 
+**Phase 7 (visual design) is IN PROGRESS — direction LOCKED, build not yet started (2026-06-05).**
+Branch `feature/phase-7-visual-design` (off `main` @ `c3e59e6`, which has P1–P6). The design
+direction is fully settled with the owner and banked in **[`docs/DESIGN-BRIEF.md`](DESIGN-BRIEF.md)**
+— READ THAT FIRST for Phase 7, it is the implementation source of truth (exact color tokens, type,
+radius/shadow/motion, and the heatmap rendering spec). Summary of the locked choices:
+- **Tone:** warm & social. **Direction #3 "Bright & Friendly"** — Honey `#EFA94A` brand + deep-pine
+  availability ramp (`#E9E6DA`→`#1A6B50`, 6 buckets) + sunny cream base `#FAF7F0`.
+- **Type:** Bricolage Grotesque (display) + Inter (body) + Inter `tabular-nums` for the time gutter.
+- **Components:** bespoke Tailwind (no shadcn). **Process:** code-first (Figma ruled out — owner's
+  Figma is work-only enterprise seats: can't author + IP risk). **Theme:** light/cream-first, dark
+  tokens defined for later tuning.
+- **Five design skills installed** into `.agents/skills/` (symlinked to `.claude/skills/`):
+  `emil-design-eng`, `impeccable`, `design-taste-frontend`, `design-for-ai`, `ui-ux-pro-max`
+  (+ its `ckm-*` bundle). All untracked (also `skills-lock.json`) — decide gitignore-vs-commit.
+- **Build order (not started):** (1) `globals.css` tokens + fonts in `layout.tsx` + Tailwind
+  `@theme` map → (2) tokenize `src/lib/ui.ts` → (3) in-app `/design` style-guide page → (4) heatmap
+  (hero) → group → dashboard → proposals → onboarding/auth → landing → legal → (5) a11y + 375px pass.
+- Current UI to replace is **zinc + indigo**: `src/lib/ui.ts` (all class strings), `heatmap.tsx`
+  (hardcoded `rgba(79,70,229,…)` ramp → must become token-driven), `layout.tsx` (Geist + indigo
+  `themeColor`). Reference board + anti-patterns are in the brief.
+
+---
+
 **Phase 6 (Microsoft Calendar) is COMPLETE and tested (2026-06-04).** Built on branch
 `feature/phase-6-microsoft-calendar` (off `main` @ `47106f4`, which has P1–P5 via PR #8). The
 architectural twin of Google, built by **extracting a provider-agnostic sync layer** instead of
