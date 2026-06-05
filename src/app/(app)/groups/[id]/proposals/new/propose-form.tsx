@@ -147,11 +147,27 @@ export function ProposeForm({
         <input id="description" name="description" className={input} />
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <span className={label}>Candidate times</span>
-        {drafts.map((d) => (
-          <div key={d.id} className="flex items-end gap-2">
-            <div className="flex flex-1 flex-col gap-1">
+        {drafts.map((d, i) => (
+          <div
+            key={d.id}
+            className="flex flex-col gap-2 rounded-md border border-border bg-surface-sunken/40 p-3"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-ink-subtle">
+                Option {i + 1}
+              </span>
+              <button
+                type="button"
+                onClick={() => removeDraft(d.id)}
+                disabled={drafts.length === 1}
+                className="text-xs text-red-700 hover:underline disabled:opacity-30 dark:text-red-300"
+              >
+                Remove
+              </button>
+            </div>
+            <div className="flex flex-col gap-1">
               <span className="text-[10px] text-ink-subtle">Date</span>
               <input
                 type="date"
@@ -161,35 +177,28 @@ export function ProposeForm({
                 required
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-ink-subtle">From</span>
-              <input
-                type="time"
-                value={d.start}
-                onChange={(e) => update(d.id, { start: e.target.value })}
-                className={input}
-                required
-              />
+            <div className="flex gap-2">
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="text-[10px] text-ink-subtle">From</span>
+                <input
+                  type="time"
+                  value={d.start}
+                  onChange={(e) => update(d.id, { start: e.target.value })}
+                  className={input}
+                  required
+                />
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="text-[10px] text-ink-subtle">To</span>
+                <input
+                  type="time"
+                  value={d.end}
+                  onChange={(e) => update(d.id, { end: e.target.value })}
+                  className={input}
+                  required
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-ink-subtle">To</span>
-              <input
-                type="time"
-                value={d.end}
-                onChange={(e) => update(d.id, { end: e.target.value })}
-                className={input}
-                required
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => removeDraft(d.id)}
-              disabled={drafts.length === 1}
-              className="pb-2 text-xs text-red-700 hover:underline disabled:opacity-30"
-              title="Remove"
-            >
-              ✕
-            </button>
           </div>
         ))}
         <button

@@ -57,7 +57,7 @@ export default async function NewProposalPage({
           availability without leaving the page. Mobile: form first, heatmap
           reference below. Desktop: form left, heatmap right (sticky). */}
       <div className="grid items-start gap-4 lg:grid-cols-2">
-        <div className={card}>
+        <div className={`${card} min-w-0`}>
           <ProposeForm
             groupId={group.id}
             initialTitle={title ?? ""}
@@ -65,7 +65,7 @@ export default async function NewProposalPage({
             initialEnd={end}
           />
         </div>
-        <div className="flex flex-col gap-2 lg:sticky lg:top-4">
+        <div className="flex min-w-0 flex-col gap-2 lg:sticky lg:top-4">
           <h2 className="text-sm font-semibold text-ink">
             Group availability
           </h2>
@@ -74,11 +74,7 @@ export default async function NewProposalPage({
             here, then enter it on the left.
           </p>
           <div className={card}>
-            <Heatmap
-              groupId={group.id}
-              slotMinutes={group.slot_minutes}
-              initialView="week"
-            />
+            <Heatmap groupId={group.id} slotMinutes={group.slot_minutes} />
           </div>
         </div>
       </div>
