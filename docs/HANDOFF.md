@@ -93,6 +93,22 @@ direction.** Other pre-launch work (OAuth verification, deploy) is owner-driven 
 
 ---
 
+**Pre-launch correctness fix (2026-06-05).** Branch `fix/pre-launch-functional` (off `main`).
+Fixed the one functional bug captured in `PRE-LAUNCH.md` "Known correctness issues": **all-day busy
+events blocked the wrong local day.** They sync as UTC-midnight instants; `effective_event_busy_intervals`
+now expands each all-day event into the **event owner's** local calendar day via `profiles.time_zone`
+(IANA — the column already existed; the old note claiming "no per-user tz yet" was wrong), before
+testing overlap. All three consumers (`my_busy_intervals`, `group_busy_intervals`, `group_heatmap`)
+route through that helper, so the fix is one function, no signature/app changes; covers Google + MS.
+Migration `20260605211948_fix_allday_busy_timezone` applied to local **and** hosted production via
+MCP; `get_advisors(security)` unchanged (function stays SECURITY INVOKER). **144 unit+integration**
+(+3 in `availability.test.ts`), `tsc`/`eslint`/`next build` green. A separate minor heatmap-vs-DST
+grid misalignment was newly noted in `PRE-LAUNCH.md` as a low-priority follow-up (not fixed).
+Remaining PRE-LAUNCH items are all owner/ops actions (OAuth verification, deploy, DMARC, confirm the
+`CONTACT_EMAIL` mailbox, advisor re-review), not code.
+
+---
+
 **Phase 5 (launch readiness & UX polish) is COMPLETE and tested (2026-06-04).** Built on branch
 `feature/phase-5` (off `main` @ `24ced09`, which has P1–P4 via PR #7). Phases 5–7 were added to the
 roadmap after P1–P4 shipped (see `docs/SPEC.md` Roadmap): P5 here, **P6 Microsoft Calendar** next,

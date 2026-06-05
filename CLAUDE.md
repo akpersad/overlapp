@@ -196,7 +196,18 @@ and a tuned **dark mode** (warm charcoal; a constant `--on-accent` token carries
 fills since `--ink` flips). `tsc`/`eslint`/`next build`/**141 unit+integration**/e2e green;
 screenshot-reviewed light + dark at 1280px + 375px. Full record in `docs/HANDOFF.md`.
 
-**Next:** owner-driven pre-launch work (OAuth verification, deploy) in
-[`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
-Verify the live push round-trip against a production build + installed PWA once deployed (it can't be
-exercised by `next dev` or the e2e suite).
+**Pre-launch functional fix (2026-06-05, branch `fix/pre-launch-functional`).** Resolved the
+**all-day busy events block the wrong local day** bug (the one functional item in
+`PRE-LAUNCH.md` "Known correctness issues"): `effective_event_busy_intervals` now expands each
+all-day event into the **event owner's** local calendar day via `profiles.time_zone` (the tz column
+already existed) before testing overlap; all three consumers (`my_busy_intervals`,
+`group_busy_intervals`, `group_heatmap`) route through it, so one function fixes Google + Microsoft
+with no app changes. Migration `20260605211948_fix_allday_busy_timezone` applied to local **and**
+hosted production via MCP (advisors unchanged — the helper stays SECURITY INVOKER). **144
+unit+integration** green (+3 in `availability.test.ts`); `tsc`/`eslint`/`next build` green. A minor
+heatmap-vs-DST grid misalignment was newly logged in `PRE-LAUNCH.md` as a low-priority follow-up.
+
+**Next:** owner-driven pre-launch work (OAuth verification, deploy, confirm the `CONTACT_EMAIL`
+mailbox) in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
+[`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md). Verify the live push round-trip against a production
+build + installed PWA once deployed (it can't be exercised by `next dev` or the e2e suite).

@@ -77,23 +77,34 @@
 
 ## Known correctness issues to resolve
 
-- **All-day busy events block the wrong local day (timezone bug).** Providers
+- **All-day busy events block the wrong local day (timezone bug).** ✅ **FIXED
+  (2026-06-05, migration `20260605211948_fix_allday_busy_timezone`).** Providers
   express all-day events as *floating calendar dates* (Google `start.date =
   "2026-06-06"`, no time/zone). Sync stores them as UTC-midnight instants
   (`2026-06-06T00:00:00Z`), which is correct as storage but ambiguous without a
-  zone. The **display** was fixed (2026-06-05): `LocalTime`/`AllDayRange` now
-  render all-day events as dates in UTC ("Sat, Jun 6 · all day") instead of
-  shifting them into the viewer's zone. **Still open:** a *busy* all-day event
-  (e.g. an all-day "Vacation" with busy transparency) feeds the busy-interval
-  RPCs / heatmap with those UTC-midnight bounds, so for a viewer in EDT it blocks
-  `Jun 5 8 PM → Jun 6 8 PM` instead of the local calendar day. Free all-day
-  events (most birthdays/reminders) are unaffected since they never block.
-  Proper fix needs the user's timezone to expand a floating date into a local-day
-  interval — the system doesn't store a per-user tz for this yet. Affects both
-  Google and Microsoft (same UTC-midnight mapping). Touch points:
-  `src/lib/{google,microsoft}/calendar.ts` (mapping), the
-  `effective_event_busy_intervals` / `my_busy_intervals` / `group_heatmap` RPCs,
-  and wherever a viewer/owner timezone would be sourced.
+  zone. The **display** was fixed earlier (`LocalTime`/`AllDayRange` render
+  all-day events as dates in UTC). The **busy-interval** fix now expands each
+  all-day event into the **event owner's** local calendar day using their stored
+  `profiles.time_zone` (IANA — the column existed all along; the earlier note
+  here that "the system doesn't store a per-user tz yet" was outdated). The fix
+  lives entirely in `effective_event_busy_intervals` — `my_busy_intervals`,
+  `group_busy_intervals` and `group_heatmap` all route through it, so every
+  consumer is corrected with no signature/app changes. Covers both Google and
+  Microsoft (same UTC-midnight mapping). Free all-day events (most
+  birthdays/reminders) were never affected since they never block. Regression
+  tests: `tests/integration/availability.test.ts` ("all-day events expand to the
+  owner's local day"). Applied to local **and** hosted production via MCP;
+  `get_advisors(security)` unchanged (no new lints — the function is SECURITY
+  INVOKER).
+
+- **Heatmap grid vs. DST transition weeks (minor, not yet fixed).** The heatmap
+  client (`src/app/(app)/groups/[id]/heatmap.tsx`) builds the week grid from
+  browser-local wall-clock cells (`Date#setHours`) while `group_heatmap` steps
+  slots uniformly in UTC. On the two weeks/year a DST transition falls inside the
+  window, a handful of local cells won't line up with a UTC slot instant and may
+  render blank/misaligned. Non-DST weeks (the vast majority) are correct. Low
+  priority; left as a follow-up — fix would generate the grid from the same
+  uniform UTC stepping the RPC uses.
 
 ## Final QA before flipping public
 
