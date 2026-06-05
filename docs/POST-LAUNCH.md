@@ -11,9 +11,19 @@
 
 ## Calendar sync — finish the provider set
 
-- **Microsoft Graph / Outlook** — architectural twin of Google (clean OAuth REST).
-  Free to use the Graph API. Re-skin of `src/lib/google/*` → `src/lib/microsoft/*`;
-  the `calendar_provider` enum already has `microsoft`.
+- **Microsoft Graph / Outlook** — ⚙️ **already built; parked on a branch, not merged.** Was started
+  as "Phase 6" then deferred: a complete, tested implementation lives on branch
+  **`feature/phase-6-microsoft-calendar`**, built as a **provider-agnostic sync layer**
+  (`src/lib/calendar/{types,sync}.ts` + a `CalendarAdapter` seam) with Google refactored into an
+  adapter (`src/lib/google/adapter.ts`, helpers unchanged) and a new Microsoft Graph adapter
+  (`src/lib/microsoft/*`: `calendarView/delta` incremental pull, `Prefer: outlook.timezone="UTC"`,
+  busy-by-default `showAs` mapping, `events.create` write-back). Includes `connectMicrosoft`, the
+  `/api/calendars/microsoft/callback` route, both Connect buttons on `/calendars`, unit + integration
+  tests (all green), and `docs/MICROSOFT-SETUP.md`. **Free** to use the Graph API; **no DB change**
+  (the `calendar_provider` enum already has `microsoft`). **Blocked on:** registering an **Azure /
+  Entra app** to get `MICROSOFT_CLIENT_ID` + `MICROSOFT_CLIENT_SECRET` — the owner can't reach the
+  Azure portal on a work-restricted machine. **To revive:** register the app (steps in
+  `docs/MICROSOFT-SETUP.md` on the branch), set the two env vars, then merge the branch.
 - **Apple Calendar** — no public REST API; iCloud is **CalDAV** (app-specific
   passwords). Hardest, last. Free. Enum already has `apple_caldav`.
 - **ICS subscription links** — a free stopgap for iCloud-only users before full

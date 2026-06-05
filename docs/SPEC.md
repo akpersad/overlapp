@@ -4,9 +4,11 @@
 > All product decisions are settled. The **data model is finalized** — see
 > [`DATA-MODEL.md`](DATA-MODEL.md). **Roadmap phases 1–5 are built and tested** (see
 > `docs/HANDOFF.md`, `docs/GOOGLE-SETUP.md`, `docs/PWA-SETUP.md`). **Phase 6** (Microsoft Calendar)
-> and **Phase 7** (visual design — gated on product input) remain; see the Roadmap below. Other
-> pre-launch work is owner-driven ([`PRE-LAUNCH.md`](PRE-LAUNCH.md)); backlog in
-> ([`POST-LAUNCH.md`](POST-LAUNCH.md)).
+> is **deferred to the post-launch backlog** — a full implementation was built and sits on a branch,
+> but shipping it needs an Azure app the owner can't register on a work-restricted machine
+> ([`POST-LAUNCH.md`](POST-LAUNCH.md)). **Phase 7** (visual design — gated on product input) is the
+> last roadmap phase; see the Roadmap below. Other pre-launch work is owner-driven
+> ([`PRE-LAUNCH.md`](PRE-LAUNCH.md)).
 
 ## The problem
 
@@ -169,12 +171,19 @@ User ──┬── connects calendars (Google / Apple / Outlook)
 - Supabase `get_advisors` review + full QA (tests / `tsc` / `eslint` / `next build`).
 - *(Deploy, Google OAuth verification, and DNS remain owner-driven — see `PRE-LAUNCH.md`.)*
 
-### Phase 6 — Microsoft Calendar
+### Phase 6 — Microsoft Calendar  ⛔ *deferred to the post-launch backlog*
 *Goal: finish the calendar-provider set's next entry — the architectural twin of Google.*
 - Microsoft Graph / Outlook OAuth (calendar-access flow, not login).
 - Busy-by-default import + the same per-event / per-category free/blocked overrides.
 - Background re-sync + write-back, reusing the `calendars` / `events` / `category_overrides` tables
-  (`calendar_provider` enum already has `microsoft`). Re-skin of `src/lib/google/*` → `src/lib/microsoft/*`.
+  (`calendar_provider` enum already has `microsoft`).
+- **Status:** a complete, tested implementation exists on branch
+  `feature/phase-6-microsoft-calendar` — built as a provider-agnostic sync layer
+  (`src/lib/calendar/*` + a `CalendarAdapter` seam) rather than a flat code copy, with Google
+  refactored into an adapter and a new Microsoft Graph adapter. **Shelved** because finishing it
+  requires registering an Azure app, which the owner can't do on a work-restricted machine. No DB
+  change is needed; reviving it is "register the app, set the env vars, merge the branch." Tracked in
+  [`POST-LAUNCH.md`](POST-LAUNCH.md) → *Calendar sync*.
 
 ### Phase 7 — Visual design pass  ⬅️ *gated on product input before build*
 *Goal: execute `DESIGN-PRINCIPLES.md` — heatmap-as-hero, one accent, colourblind-safe, anti-AI-slop.*

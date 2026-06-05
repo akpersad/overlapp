@@ -37,7 +37,9 @@ P1 Foundation (auth, groups, invite, manual blocks, group heatmap — build end-
 P2 calendar sync + overrides → P3 multi-date proposals, nudges, quorum, write-back →
 P4 PWA polish (installable, push, offline, recurring) →
 P5 launch readiness & UX polish (legal pages, realtime heatmap, transfer-on-delete) →
-P6 Microsoft Calendar (the Google twin) → P7 visual design pass (gated on product input, last).
+P6 Microsoft Calendar **— DEFERRED to the post-launch backlog** (see [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md);
+a full implementation exists on branch `feature/phase-6-microsoft-calendar` but can't ship until an
+Azure app can be registered) → P7 visual design pass (gated on product input, last).
 Phases 5–7 detail lives in [`docs/SPEC.md`](docs/SPEC.md) Roadmap.
 Pre-launch checklist (legal pages, OAuth verification, deploy): [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md).
 Non-MVP / post-launch backlog (free-tier-first): [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
@@ -162,8 +164,20 @@ the broadcast authorization boundary + that triggers don't break writes); `tsc`/
 build`/e2e green. ⚠️ Live realtime *delivery* (websocket subscribe → receive) is a manual check, like
 Web Push — the deterministic auth boundary is tested instead.
 
-**Next: Phase 6 (Microsoft Calendar) — the architectural twin of Google.** Phase 7 (visual design)
-is **gated on product input** and lands last. Other pre-launch work (OAuth verification, deploy) is
-owner-driven in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
-[`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md). Verify the live push round-trip against a production
-build + installed PWA once deployed (it can't be exercised by `next dev` or the e2e suite).
+**Phase 6 (Microsoft Calendar) is DEFERRED to the post-launch backlog (2026-06-04).** A complete,
+tested implementation was built — a provider-agnostic sync layer (`src/lib/calendar/*` +
+a `CalendarAdapter` seam) with Google refactored into an adapter and a new Microsoft Graph adapter —
+and it lives on branch **`feature/phase-6-microsoft-calendar`** (commit not merged). It's shelved
+because finishing it requires registering an **Azure app**, which the owner can't do on a
+work-restricted machine. No DB change is involved (the `calendars`/`events`/`category_overrides`
+tables and the `calendar_provider` enum already accommodate `microsoft`), so reviving it later is
+just: register the Azure app, set `MICROSOFT_CLIENT_ID/SECRET`, and merge the branch (see
+[`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md) → *Calendar sync* and `docs/MICROSOFT-SETUP.md` on that
+branch). **`main` remains the production-verified Google-only state.**
+
+**Next: Phase 7 (visual design) is the last roadmap phase but is gated on product input — do not
+start without the owner's direction** (references, accent, tone; see `DESIGN-PRINCIPLES.md`). Other
+pre-launch work (OAuth verification, deploy) is owner-driven in
+[`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
+Verify the live push round-trip against a production build + installed PWA once deployed (it can't be
+exercised by `next dev` or the e2e suite).

@@ -5,10 +5,21 @@
 
 ## TL;DR — where we are
 
+**Roadmap status (updated 2026-06-04):** Phases 1–5 are built, tested, and on `main`. **Phase 6
+(Microsoft Calendar) is DEFERRED to the post-launch backlog** — a complete, tested implementation
+was built (a provider-agnostic sync layer + a `CalendarAdapter` seam; Google refactored into an
+adapter + a new Microsoft Graph adapter) and lives on branch **`feature/phase-6-microsoft-calendar`**
+(not merged), but it's shelved because finishing it requires registering an **Azure app**, which the
+owner can't do on a work-restricted machine. No DB change is involved, so reviving it is "register
+the app → set `MICROSOFT_CLIENT_ID/SECRET` → merge the branch" (see `docs/POST-LAUNCH.md` →
+*Calendar sync*, and `docs/MICROSOFT-SETUP.md` on that branch). **`main` is the production-verified
+Google-only state.** The only remaining roadmap phase is **Phase 7 (visual design), which is gated
+on product input** — don't start it without the owner's direction.
+
 **Phase 5 (launch readiness & UX polish) is COMPLETE and tested (2026-06-04).** Built on branch
 `feature/phase-5` (off `main` @ `24ced09`, which has P1–P4 via PR #7). Phases 5–7 were added to the
-roadmap after P1–P4 shipped (see `docs/SPEC.md` Roadmap): P5 here, **P6 Microsoft Calendar** next,
-**P7 visual design** last (gated on product input). Three P5 deliverables:
+roadmap after P1–P4 shipped (see `docs/SPEC.md` Roadmap): P5 here, **P6 Microsoft Calendar**
+(now deferred — see above), **P7 visual design** last (gated on product input). Three P5 deliverables:
 - **Public legal pages** — `/privacy` + `/terms` in route group `src/app/(legal)/` (shared chrome in
   `layout.tsx`, shared bits in `ui.tsx`), added to the proxy `PUBLIC_PATHS`, linked from the landing
   footer. Cover what we collect, the free/busy-only model, **Google Limited Use**, retention +
@@ -36,8 +47,10 @@ roadmap after P1–P4 shipped (see `docs/SPEC.md` Roadmap): P5 here, **P6 Micros
   Google env unset, as before). ⚠️ Live realtime *delivery* (websocket subscribe → receive) is a
   manual check, like Web Push — the deterministic auth boundary is what's unit/integration-tested.
 
-**Next: Phase 6 (Microsoft Calendar).** Re-skin `src/lib/google/*` → `src/lib/microsoft/*`; the
-`calendars` / `events` / `category_overrides` tables and `calendar_provider` enum already accommodate it.
+**Next: Phase 6 (Microsoft Calendar) — DEFERRED to the post-launch backlog (see the status banner at
+the top of this TL;DR).** The implementation is done and parked on branch
+`feature/phase-6-microsoft-calendar`; it's blocked only on registering an Azure app. The next
+*actionable* roadmap phase is Phase 7 (visual design), which is gated on owner product input.
 
 ---
 
