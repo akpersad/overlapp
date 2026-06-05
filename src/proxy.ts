@@ -30,6 +30,9 @@ const PUBLIC_PATHS = [
   // OAuth verification; linked from the landing footer.
   "/privacy",
   "/terms",
+  // The Phase 7 design style-guide (living token/component reference). Public so
+  // it can be screenshot-reviewed without a session; noindex'd on the page.
+  "/design",
   // PWA assets the browser fetches without a session (Phase 4): the service
   // worker, the manifest, and the offline fallback the SW serves when the
   // network is down (which may happen while signed out).
