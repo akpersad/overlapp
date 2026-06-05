@@ -79,30 +79,30 @@ export default async function ProposalPage({
       <div className="flex flex-col gap-1">
         <Link
           href={`/groups/${id}`}
-          className="text-sm text-zinc-500 hover:underline"
+          className="text-sm text-ink-muted hover:underline"
         >
           ← Back to group
         </Link>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-h1 text-ink">
             {proposal.title}
           </h1>
           <StatusBadge status={proposal.status} />
         </div>
         {proposal.description && (
-          <p className="text-zinc-600 dark:text-zinc-400">
+          <p className="text-ink-muted">
             {proposal.description}
           </p>
         )}
         {proposal.pinned_tz && (
-          <p className="text-xs text-zinc-500">Times pinned to {proposal.pinned_tz}.</p>
+          <p className="text-xs text-ink-muted">Times pinned to {proposal.pinned_tz}.</p>
         )}
       </div>
 
       {/* Respond — members mark availability while the proposal is open. */}
       {isOpen && (
         <section className={card}>
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h2 className="mb-3 text-h3 text-ink">
             Your availability
           </h2>
           <RespondForm
@@ -120,9 +120,9 @@ export default async function ProposalPage({
 
       {/* Results — overlap tally per option. */}
       <section className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Overlap{" "}
-          <span className="font-normal text-zinc-400">
+          <span className="text-body-sm font-normal text-ink-subtle tabular">
             ({respondedCount}/{totalMembers} responded)
           </span>
         </h2>
@@ -134,29 +134,29 @@ export default async function ProposalPage({
                 key={r.option_id}
                 className={`flex flex-wrap items-center gap-3 rounded-lg border p-3 ${
                   isFinal
-                    ? "border-green-400 bg-green-50 dark:border-green-700 dark:bg-green-950/40"
+                    ? "border-av-5 bg-av-5/10"
                     : r.meets_quorum
-                      ? "border-indigo-300 dark:border-indigo-800"
-                      : "border-zinc-200 dark:border-zinc-800"
+                      ? "border-honey-300"
+                      : "border-border"
                 }`}
               >
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <span className="text-sm font-medium text-ink tabular">
                     <LocalTime iso={r.starts_at} /> –{" "}
                     <LocalTime iso={r.ends_at} withDate={false} />
                   </span>
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-ink-muted tabular">
                     {r.yes_count} yes · {r.maybe_count} maybe · {r.no_count} no
                   </span>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                   {isFinal && (
-                    <span className="rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    <span className="rounded-full bg-av-5 px-2 py-0.5 text-[10px] font-semibold text-white">
                       Chosen
                     </span>
                   )}
                   {!isFinal && r.meets_quorum && (
-                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                    <span className="rounded-full bg-honey-50 px-2 py-0.5 text-[10px] font-medium text-honey-900 tabular">
                       Works ({r.available_count}/{r.quorum})
                     </span>
                   )}
@@ -178,7 +178,7 @@ export default async function ProposalPage({
       </section>
 
       {isLocked && (
-        <p className="text-sm text-green-700 dark:text-green-400">
+        <p className="text-sm text-av-5">
           ✓ Locked. Members who opted in have it on their calendar.
         </p>
       )}
@@ -186,7 +186,7 @@ export default async function ProposalPage({
       {/* Manager controls */}
       {isManager && isOpen && (
         <section className={card}>
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h2 className="mb-3 text-h3 text-ink">
             Manage proposal
           </h2>
           <div className="flex flex-wrap gap-3">
@@ -209,10 +209,10 @@ export default async function ProposalPage({
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    open: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
-    locked: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-    cancelled: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
-    draft: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+    open: "bg-honey-50 text-honey-900",
+    locked: "bg-av-5 text-white",
+    cancelled: "bg-surface-sunken text-ink-muted",
+    draft: "bg-surface-sunken text-ink-muted",
   };
   return (
     <span

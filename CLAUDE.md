@@ -185,8 +185,18 @@ DB path); `tsc`/`eslint`/`next build`/e2e green. ⚠️ The **live Microsoft OAu
 verified** against a real account (no Azure app registered yet) — the deterministic pieces are tested;
 consent → code exchange → sync is the remaining manual check (`docs/MICROSOFT-SETUP.md §5`).
 
-**Next: Phase 7 (visual design) — gated on product input; do not start without the owner's
-direction** (references, accent, tone — see `DESIGN-PRINCIPLES.md`). Other pre-launch work (OAuth
-verification, deploy) is owner-driven in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
-[`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md). Verify the live push round-trip against a production
-build + installed PWA once deployed (it can't be exercised by `next dev` or the e2e suite).
+**Phase 7 (visual design) is COMPLETE and verified (2026-06-05).** The whole app now runs on the
+"Bright & Friendly" warm-social system from [`docs/DESIGN-BRIEF.md`](docs/DESIGN-BRIEF.md): honey
+brand + deep-pine availability ramp + cream base, Bricolage Grotesque (display) + Inter (body), all
+as semantic CSS-variable tokens in `src/app/globals.css` (mapped to Tailwind via `@theme inline`),
+referenced through `src/lib/ui.ts` + a `/design` style-guide page. All 38 user-facing surfaces moved
+off raw zinc/indigo (the heatmap hero uses the bucketed `--av-0..5` pine ramp + honey quorum
+outline). Includes a **mobile bottom-tab-bar** nav (`BottomNav.tsx`) for the 375–430px phone target
+and a tuned **dark mode** (warm charcoal; a constant `--on-accent` token carries dark text on bright
+fills since `--ink` flips). `tsc`/`eslint`/`next build`/**141 unit+integration**/e2e green;
+screenshot-reviewed light + dark at 1280px + 375px. Full record in `docs/HANDOFF.md`.
+
+**Next:** owner-driven pre-launch work (OAuth verification, deploy) in
+[`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
+Verify the live push round-trip against a production build + installed PWA once deployed (it can't be
+exercised by `next dev` or the e2e suite).

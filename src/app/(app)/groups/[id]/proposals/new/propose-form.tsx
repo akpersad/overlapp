@@ -99,7 +99,7 @@ export function ProposeForm({
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="description" className={label}>
-          Details <span className="text-zinc-400">(optional)</span>
+          Details <span className="text-ink-subtle">(optional)</span>
         </label>
         <input id="description" name="description" className={input} />
       </div>
@@ -109,7 +109,7 @@ export function ProposeForm({
         {drafts.map((d) => (
           <div key={d.id} className="flex items-end gap-2">
             <div className="flex flex-1 flex-col gap-1">
-              <span className="text-[10px] text-zinc-400">Date</span>
+              <span className="text-[10px] text-ink-subtle">Date</span>
               <input
                 type="date"
                 value={d.date}
@@ -119,7 +119,7 @@ export function ProposeForm({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-zinc-400">From</span>
+              <span className="text-[10px] text-ink-subtle">From</span>
               <input
                 type="time"
                 value={d.start}
@@ -129,7 +129,7 @@ export function ProposeForm({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-zinc-400">To</span>
+              <span className="text-[10px] text-ink-subtle">To</span>
               <input
                 type="time"
                 value={d.end}
@@ -142,7 +142,7 @@ export function ProposeForm({
               type="button"
               onClick={() => removeDraft(d.id)}
               disabled={drafts.length === 1}
-              className="pb-2 text-xs text-red-600 hover:underline disabled:opacity-30"
+              className="pb-2 text-xs text-red-700 hover:underline disabled:opacity-30"
               title="Remove"
             >
               ✕
@@ -160,7 +160,7 @@ export function ProposeForm({
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="pinned_tz" className={label}>
-          Pin a time zone <span className="text-zinc-400">(optional)</span>
+          Pin a time zone <span className="text-ink-subtle">(optional)</span>
         </label>
         <input
           id="pinned_tz"
@@ -168,7 +168,7 @@ export function ProposeForm({
           placeholder="e.g. America/New_York"
           className={input}
         />
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           Use when the event&apos;s zone matters (e.g. a flight). Otherwise times
           show in each member&apos;s local zone.
         </p>

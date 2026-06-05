@@ -5,6 +5,53 @@
 
 ## TL;DR — where we are
 
+**Phase 7 (visual design) is COMPLETE and verified (2026-06-05).** Branch
+`feature/phase-7-visual-design` (off `main` @ `c3e59e6`, which has P1–P6). The whole app was moved
+onto the "Bright & Friendly" warm-social system from **[`docs/DESIGN-BRIEF.md`](DESIGN-BRIEF.md)**
+(the implementation source of truth — tokens, type, radius/shadow/motion, heatmap spec):
+- **Foundations** (`8ec7d67`): `src/app/globals.css` now defines the full semantic-token set as CSS
+  variables (honey brand, warm-cream neutrals, deep-pine availability ramp `--av-0..5`,
+  radius/shadow/motion) + an `@theme inline` map exposing them as Tailwind utilities (`bg-surface`,
+  `text-ink`, `text-honey-700`, `bg-av-5`, `rounded-lg`, `shadow-sm`, `ease-soft`, …), the type
+  scale as component classes (`text-display-xl`…`text-time`, `tabular`), and a global
+  `prefers-reduced-motion` guard. Dark-mode token values are defined (OS-preference `@media`) but
+  only lightly tuned — **the dark pass is the one remaining polish item.** `layout.tsx` loads
+  **Bricolage Grotesque** (`--font-bricolage`, display) + **Inter** (`--font-inter`, body) via
+  `next/font/google`; `theme-color` is honey/charcoal per scheme. `src/lib/ui.ts` btn/input/card/
+  label are tokenized (honey focus ring, primary = honey-500 fill + ink text). A living
+  **`/design`** style-guide page (public + `noindex`, in proxy `PUBLIC_PATHS`) shows every token +
+  component.
+- **Every screen converted** (this commit): all 38 user-facing surfaces moved off raw
+  zinc/indigo to the tokens — shared chrome (`AppNav`, app+legal layouts, `AuthCard`), the **hero
+  heatmap** (`heatmap.tsx`: the hardcoded `rgba(79,70,229,…)` ramp is now the bucketed
+  `--av-0..5` pine ramp in a sunken cream well, rounded 5px cells with free-count, tabular time
+  gutter, **honey inset outline for quorum** — shape cue not hue, CVD-safe), group page, dashboard,
+  proposals (new + detail, honey RSVP toggles), onboarding/auth, the **landing page** (warm hero
+  with a real mini-heatmap preview instead of a templated feature-triplet), legal, profile,
+  calendars, availability, notifications, invite, offline, group new/edit. Red is kept only as the
+  semantic danger colour. Headings use the display face via the type-scale classes.
+- **Vendored design skills** are gitignored (`.agents/` + `.claude/skills/`); `skills-lock.json`
+  (the reinstall manifest) is committed. `eslint.config.mjs` ignores `.agents/**` + `.claude/**`.
+- **Verified:** `tsc`, `eslint`, `next build` (all 25 routes) green; **54 unit + 87 integration
+  (141)** + the Playwright **e2e core-loop** green; every screen screenshot-reviewed at 1280px and
+  375px (incl. the real heatmap with a 4-member seeded ramp + quorum rings), screenshots deleted.
+- **Mobile (375px) pass — DONE (2026-06-05).** The authed shell now uses a **bottom tab bar**
+  (`src/components/BottomNav.tsx`, client, `usePathname` for the active tab — Groups / Availability /
+  Calendars / Inbox with inline SVG icons + unread badge) on mobile, with the top bar slimmed to
+  wordmark + avatar; the inline top-nav links + Sign out are `sm:`-only. `(app)/layout.tsx` main has
+  `pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-6` to clear the fixed bar. Verified at 375px and
+  430px (iPhone Pro Max); the heatmap scrolls horizontally as designed.
+- **Dark-mode pass — DONE (2026-06-05).** Warm-charcoal token values tuned in `globals.css`. The key
+  subtlety: `--ink` flips to near-white in dark, so anywhere dark text sits on a **bright** fill
+  (honey buttons/badges, the light av-1/av-2 heatmap cells) now uses a **constant** `--on-accent`
+  (#2a2820) instead of `--ink`; and the "text-safe" accent tokens that are dark on cream
+  (`--honey-700`/`--honey-900`) + the tinted chip backgrounds (`--honey-50`/`--honey-100`) get
+  light/subtle dark-mode overrides so links, chips, and warnings stay readable on charcoal. Driven by
+  `prefers-color-scheme`; screenshot-reviewed light + dark across landing, /design, dashboard, group
+  (heatmap), proposals, mobile. No remaining design blockers.
+
+---
+
 **Phase 6 (Microsoft Calendar) is COMPLETE and tested (2026-06-04).** Built on branch
 `feature/phase-6-microsoft-calendar` (off `main` @ `47106f4`, which has P1–P5 via PR #8). The
 architectural twin of Google, built by **extracting a provider-agnostic sync layer** instead of

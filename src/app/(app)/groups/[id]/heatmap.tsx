@@ -202,18 +202,16 @@ export function Heatmap({
       <div className="flex items-center justify-between">
         <button
           onClick={() => goToWeek((w) => w - 1)}
-          className="rounded-md px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="rounded-md px-2.5 py-1 text-sm text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
         >
           ← Prev
         </button>
         <div className="text-center">
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-            {weekLabel}
-          </p>
+          <p className="text-sm font-semibold text-ink tabular">{weekLabel}</p>
           {weekOffset !== 0 && (
             <button
               onClick={() => goToWeek(() => 0)}
-              className="text-xs text-indigo-600 hover:underline"
+              className="text-xs font-medium text-honey-700 hover:underline"
             >
               This week
             </button>
@@ -221,7 +219,7 @@ export function Heatmap({
         </div>
         <button
           onClick={() => goToWeek((w) => w + 1)}
-          className="rounded-md px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="rounded-md px-2.5 py-1 text-sm text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
         >
           Next →
         </button>
@@ -229,22 +227,22 @@ export function Heatmap({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {stale && (
-        <p className="rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+        <p className="rounded-md bg-honey-50 px-2.5 py-1.5 text-xs font-medium text-honey-900">
           Offline — showing the last saved availability for this week.
         </p>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg bg-surface-sunken p-3">
         <div className="min-w-[480px]">
           {/* Header row */}
-          <div className="grid grid-cols-[44px_repeat(7,1fr)] gap-px">
+          <div className="grid grid-cols-[44px_repeat(7,1fr)] gap-[3px]">
             <div />
             {days.map((d, i) => (
-              <div key={i} className="pb-1 text-center">
-                <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              <div key={i} className="pb-1.5 text-center">
+                <div className="text-xs font-semibold text-ink">
                   {DAY_LABELS[i]}
                 </div>
-                <div className="text-[10px] text-zinc-400">{d.getDate()}</div>
+                <div className="text-time">{d.getDate()}</div>
               </div>
             ))}
           </div>
@@ -257,9 +255,9 @@ export function Heatmap({
             return (
               <div
                 key={minutes}
-                className="grid grid-cols-[44px_repeat(7,1fr)] gap-px"
+                className="grid grid-cols-[44px_repeat(7,1fr)] gap-[3px] pb-[3px]"
               >
-                <div className="pr-1 text-right text-[10px] leading-5 text-zinc-400">
+                <div className="pr-1.5 text-right text-time leading-[18px]">
                   {showLabel
                     ? `${((hh + 11) % 12) + 1}${hh < 12 ? "a" : "p"}`
                     : ""}
@@ -295,38 +293,48 @@ export function Heatmap({
   );
 }
 
+// Bucket the free-count into the 6-step deep-pine ramp (av-0..av-5). We bucket
+// rather than map 1:1 so the scale reads with up to 15 people (DESIGN-BRIEF) —
+// 0 free = av-0 (warm empty), everyone free = av-5 (the signal), the middle is
+// split across av-1..av-4 by share-of-group.
+function avBucket(freeCount: number, total: number, everyoneFree: boolean) {
+  if (freeCount <= 0) return 0;
+  if (everyoneFree) return 5;
+  const ratio = freeCount / total;
+  if (ratio <= 0.25) return 1;
+  if (ratio <= 0.5) return 2;
+  if (ratio <= 0.75) return 3;
+  return 4;
+}
+
 function HeatCell({ slot, label }: { slot?: Slot; label: string }) {
   if (!slot || slot.total_members === 0) {
-    return <div className="h-5 rounded-[2px] bg-zinc-100 dark:bg-zinc-800" />;
+    // Warm empty — sits in the cream family (charcoal family in dark), never a grey box.
+    return <div className="h-[18px] rounded-[5px] bg-av-0" aria-hidden />;
   }
-  const ratio = slot.free_count / slot.total_members;
+  const bucket = avBucket(slot.free_count, slot.total_members, slot.everyone_free);
+  // Cell text: ink on the light end (av-0..2), white on the dark end (av-3..5).
+  // av-1/av-2 are light greens in BOTH themes, so their number stays dark
+  // (--on-accent, constant); av-3..5 are deep enough for white. (bucket 0 = no number.)
+  const textColor = bucket >= 3 ? "#ffffff" : "var(--on-accent)";
   // The quorum verdict only differs from "everyone" when a quorum < total is
   // set, so naming it in the tooltip stays informative either way.
   const quorumNote =
     slot.quorum < slot.total_members ? ` (quorum ${slot.quorum})` : "";
   const title = `${label}: ${slot.free_count}/${slot.total_members} free${quorumNote}`;
 
-  if (slot.everyone_free) {
-    return (
-      <div
-        title={title}
-        className="flex h-5 items-center justify-center rounded-[2px] bg-indigo-600 text-[10px] font-semibold text-white ring-1 ring-inset ring-indigo-300"
-      >
-        {slot.free_count}
-      </div>
-    );
-  }
-  // "Good enough" quorum slots are outlined (a shape cue, not a second hue — so
-  // they survive colourblindness, per DESIGN-PRINCIPLES) on top of the ramp.
+  // "Good enough" quorum slots get a honey inset outline (a shape cue, not a
+  // second hue — survives colourblindness, per DESIGN-BRIEF) on top of the ramp.
+  // "Everyone free" (av-5) is the signal on its own and needs no ring.
   const quorumRing =
-    slot.meets_quorum && slot.quorum < slot.total_members
-      ? " ring-2 ring-inset ring-indigo-500"
+    slot.meets_quorum && !slot.everyone_free && slot.quorum < slot.total_members
+      ? " ring-2 ring-inset ring-honey-500"
       : "";
   return (
     <div
       title={title}
-      style={{ backgroundColor: `rgba(79, 70, 229, ${0.12 + ratio * 0.6})` }}
-      className={`flex h-5 items-center justify-center rounded-[2px] text-[10px] text-zinc-700 dark:text-zinc-100${quorumRing}`}
+      style={{ backgroundColor: `var(--av-${bucket})`, color: textColor }}
+      className={`flex h-[18px] items-center justify-center rounded-[5px] text-[10px] font-semibold tabular transition-colors duration-200 ease-soft${quorumRing}`}
     >
       {slot.free_count > 0 ? slot.free_count : ""}
     </div>
@@ -344,30 +352,34 @@ function Legend({
 }) {
   const showQuorum = quorum > 0 && quorum < total;
   return (
-    <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-muted">
       {loading ? (
         <span>Loading availability…</span>
       ) : (
         <>
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-[2px] bg-indigo-600 ring-1 ring-inset ring-indigo-300" />
-            Everyone free
+          {/* The ramp itself — least → most free, so the legend doubles as a key. */}
+          <span className="flex items-center gap-1.5">
+            <span className="flex gap-px">
+              {[0, 1, 2, 3, 4, 5].map((b) => (
+                <span
+                  key={b}
+                  className="h-3 w-3 rounded-[3px]"
+                  style={{ backgroundColor: `var(--av-${b})` }}
+                />
+              ))}
+            </span>
+            <span>none → everyone free</span>
           </span>
           {showQuorum && (
-            <span className="flex items-center gap-1">
-              <span className="h-3 w-3 rounded-[2px] bg-indigo-300 ring-2 ring-inset ring-indigo-500" />
+            <span className="flex items-center gap-1.5">
+              <span
+                className="h-3 w-3 rounded-[3px] ring-2 ring-inset ring-honey-500"
+                style={{ backgroundColor: "var(--av-3)" }}
+              />
               Quorum ({quorum}+)
             </span>
           )}
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-[2px] bg-indigo-300" />
-            Some free
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-[2px] bg-zinc-100 dark:bg-zinc-800" />
-            None
-          </span>
-          <span className="ml-auto">
+          <span className="ml-auto tabular">
             {total} member{total === 1 ? "" : "s"}
           </span>
         </>

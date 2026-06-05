@@ -40,14 +40,14 @@ export default async function NewProposalPage({
     <div className="flex flex-col gap-4">
       <Link
         href={`/groups/${id}`}
-        className="text-sm text-zinc-500 hover:underline"
+        className="text-sm text-ink-muted hover:underline"
       >
         ← {group.name}
       </Link>
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+      <h1 className="text-h1 text-ink">
         Propose a time
       </h1>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-body-sm text-ink-muted">
         Seed a few candidate slots. Everyone marks which work for them, then you
         lock the winner.
       </p>

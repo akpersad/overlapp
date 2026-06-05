@@ -32,7 +32,7 @@ export function InvitePanel({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h3 className="text-sm font-semibold text-ink">
             Share links
           </h3>
           <form action={createInvite}>
@@ -44,7 +44,7 @@ export function InvitePanel({
         </div>
 
         {invites.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-ink-muted">
             No active links. Create one to invite people.
           </p>
         ) : (
@@ -52,13 +52,13 @@ export function InvitePanel({
             {invites.map((inv) => (
               <li
                 key={inv.id}
-                className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-800"
+                className="flex items-center gap-2 rounded-md border border-border px-3 py-2"
               >
                 <ShareButton
                   token={inv.token}
                   groupName={groupName}
                 />
-                <span className="text-xs text-zinc-400">
+                <span className="text-xs text-ink-subtle tabular">
                   used {inv.use_count}×
                 </span>
                 <form action={revokeInvite} className="ml-auto">
@@ -78,10 +78,10 @@ export function InvitePanel({
       </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h3 className="text-sm font-semibold text-ink">
           Invite by email
         </h3>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           They&apos;ll auto-join this group when they sign up with that address.
         </p>
         <form action={emailAction} className="flex gap-2">
@@ -99,7 +99,7 @@ export function InvitePanel({
         </form>
         {emailState?.error && <p className={errorText}>{emailState.error}</p>}
         {pending.length > 0 && (
-          <ul className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+          <ul className="flex flex-col gap-1 text-sm text-ink-muted">
             {pending.map((p) => (
               <li key={p.id}>⏳ {p.email} — invited</li>
             ))}

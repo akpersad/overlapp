@@ -1,26 +1,234 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   Phase 7 design tokens — source of truth: docs/DESIGN-BRIEF.md
+   Direction #3 "Bright & Friendly": Honey brand + deep-pine availability ramp
+   + sunny cream base. All UI colour flows through these semantic CSS variables;
+   components reference the tokens, never raw zinc/indigo utilities.
+   ========================================================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* --- Neutrals — warm cream (light) --- */
+  --bg: #faf7f0; /* page background (sunny cream) */
+  --surface: #ffffff; /* cards / raised panels */
+  --surface-sunken: #f1ede1; /* wells, heatmap container, inputs-on-cream */
+  --ink: #2a2820; /* primary text (warm near-black) */
+  --ink-muted: #6e665a; /* secondary text */
+  --ink-subtle: #9c9484; /* tertiary / placeholder / time labels */
+  --border: rgba(50, 40, 10, 0.1); /* hairline borders, grid lines */
+  --border-strong: rgba(50, 40, 10, 0.16); /* input borders, weighty dividers */
+
+  /* --- Brand — honey (the single confident accent) --- */
+  --honey-50: #fbefd8; /* pill / tag / subtle highlight bg */
+  --honey-100: #f8e0b4; /* hover wash on tinted surfaces */
+  --honey-300: #f2c572; /* borders / focus ring on honey elements */
+  --honey-500: #efa94a; /* DEFAULT brand — primary fill, active states */
+  --honey-600: #e0912e; /* hover / pressed */
+  --honey-700: #b26a1e; /* text-safe — links, accent text on cream (AA) */
+  --honey-900: #7a4712; /* deep accent text / icons */
+
+  /* Text that sits ON bright fills (honey buttons, badges, light heatmap cells).
+     Constant — it does NOT flip in dark mode, because those fills stay bright. */
+  --on-accent: #2a2820;
+
+  /* --- Availability ramp — deep pine (the hero data scale) ---
+     6 buckets, monochrome green lightness scale → CVD-safe on its own. */
+  --av-0: #e9e6da; /* none free (warm empty, in the cream family) */
+  --av-1: #cfe0c8; /* a few free */
+  --av-2: #9cc9a0; /* some free */
+  --av-3: #5ba678; /* most free */
+  --av-4: #2d8460; /* nearly everyone */
+  --av-5: #1a6b50; /* everyone free (the signal — deepest) */
+  --av-quorum-ring: var(--honey-500); /* "good-enough" quorum = 2px honey outline */
+
+  /* --- Radius --- */
+  --r-sm: 8px; /* inputs */
+  --r-md: 12px; /* buttons, pills-on-rect */
+  --r-lg: 16px; /* cards */
+  --r-xl: 22px; /* sheets, hero containers */
+  --r-full: 999px; /* pills, avatars */
+
+  /* --- Elevation (soft + sparing — flat by default) --- */
+  --sh-xs: 0 1px 2px rgba(50, 40, 10, 0.06);
+  --sh-sm: 0 4px 12px rgba(50, 40, 10, 0.08); /* resting cards */
+  --sh-md: 0 8px 24px rgba(50, 40, 10, 0.1); /* popovers / menus */
+  --sh-lg: 0 16px 40px rgba(50, 40, 10, 0.14); /* sheets / modals */
+
+  /* --- Motion (persist + transform; reserve delight) --- */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1); /* gentle spring-out */
+  --t-fast: 150ms; /* hover / colour */
+  --t-base: 220ms; /* enter / layout */
+  --t-slow: 320ms; /* sheets */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Dark mode — warm charcoal. Same tokens, dark values. Light is tuned first
+   (DESIGN-BRIEF.md); dark gets a dedicated follow pass. Driven by the OS
+   preference so the existing Tailwind `dark:` structure keeps working. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #1b1915;
+    --surface: #24211b;
+    --surface-sunken: #16140f;
+    --ink: #f3eee2;
+    --ink-muted: #b6ad9c;
+    --ink-subtle: #847c6d;
+    --border: rgba(255, 240, 210, 0.1);
+    --border-strong: rgba(255, 240, 210, 0.16);
+    --honey-500: #f2b25c; /* lift slightly for glow on dark */
+    --av-0: #2a2820; /* deepen the empty cell on charcoal */
+    /* Accent text + tinted chips must read on charcoal: lift the "text-safe"
+       honeys to light values, and make the chip backgrounds a subtle dark-honey
+       tint (instead of the bright cream they are on light). */
+    --honey-700: #f2c572; /* links / accent text → light honey on dark */
+    --honey-900: #f6cd86; /* chip text + warnings → light honey on dark */
+    --honey-50: rgba(242, 178, 92, 0.16); /* pill / tag bg → subtle tint */
+    --honey-100: rgba(242, 178, 92, 0.24); /* hover wash */
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+/* ============================================================================
+   Tailwind theme mapping — expose the tokens as utilities (bg-surface,
+   text-ink, text-honey-700, bg-av-5, rounded-lg, shadow-sm, ease-soft, …).
+   `inline` keeps the var() reference live so dark-mode swaps flow through.
+   ========================================================================== */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-honey-50: var(--honey-50);
+  --color-honey-100: var(--honey-100);
+  --color-honey-300: var(--honey-300);
+  --color-honey-500: var(--honey-500);
+  --color-honey-600: var(--honey-600);
+  --color-honey-700: var(--honey-700);
+  --color-honey-900: var(--honey-900);
+  --color-on-accent: var(--on-accent);
+
+  --color-av-0: var(--av-0);
+  --color-av-1: var(--av-1);
+  --color-av-2: var(--av-2);
+  --color-av-3: var(--av-3);
+  --color-av-4: var(--av-4);
+  --color-av-5: var(--av-5);
+
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Radius scale — intentionally overrides Tailwind defaults (rounded-sm…full)
+     so the whole app shares the brief's scale. */
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-full: var(--r-full);
+
+  --shadow-xs: var(--sh-xs);
+  --shadow-sm: var(--sh-sm);
+  --shadow-md: var(--sh-md);
+  --shadow-lg: var(--sh-lg);
+
+  --ease-soft: var(--ease-soft);
+}
+
+/* ============================================================================
+   Base
+   ========================================================================== */
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--honey-100);
+    color: var(--ink);
+  }
+}
+
+/* ============================================================================
+   Typography scale (DESIGN-BRIEF.md "Type"). High contrast, ~Cron 5:1.
+   Compose with colour utilities, e.g. `class="text-display-xl text-ink"`.
+   ========================================================================== */
+@layer components {
+  .text-display-xl {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 52px;
+    letter-spacing: -0.02em;
+    line-height: 1.02;
+  }
+  .text-display-lg {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 36px;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .text-h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.15;
+  }
+  .text-h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.2;
+  }
+  .text-h3 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 1.3;
+  }
+  .text-body {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+  .text-body-sm {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+  .text-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-subtle);
+  }
+  .text-time {
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-subtle);
+  }
+  /* Fixed-width figures — for the time gutter and any aligned numerals. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Respect reduced-motion globally: cut transforms/animations, keep gentle
+   opacity fades only (DESIGN-BRIEF.md "Motion"). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
 }

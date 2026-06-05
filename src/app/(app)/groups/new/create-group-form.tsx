@@ -19,7 +19,7 @@ export function CreateGroupForm() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="description" className={label}>
-          Description <span className="text-zinc-400">(optional)</span>
+          Description <span className="text-ink-subtle">(optional)</span>
         </label>
         <input id="description" name="description" className={input} />
       </div>
@@ -58,7 +58,7 @@ export function CreateGroupForm() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="quorum" className={label}>
-          Quorum <span className="text-zinc-400">(optional)</span>
+          Quorum <span className="text-ink-subtle">(optional)</span>
         </label>
         <input
           id="quorum"
@@ -69,7 +69,7 @@ export function CreateGroupForm() {
           placeholder="Everyone"
           className={input}
         />
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           How many free counts as &ldquo;good enough.&rdquo; Leave blank to
           require everyone.
         </p>

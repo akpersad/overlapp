@@ -10,29 +10,29 @@ export default function LegalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-dvh flex-col bg-bg">
       <header className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-4">
         <Link
           href="/"
-          className="text-lg font-bold tracking-tight text-indigo-600"
+          className="font-display text-lg font-extrabold tracking-tight text-honey-700"
         >
           Overlapp
         </Link>
         <Link
           href="/"
-          className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          className="text-sm font-medium text-ink-muted transition-colors hover:text-ink"
         >
           ← Home
         </Link>
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-        <article className="flex flex-col gap-5 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+        <article className="flex flex-col gap-5 text-body leading-relaxed text-ink-muted">
           {children}
         </article>
       </main>
 
-      <footer className="mx-auto flex w-full max-w-3xl items-center justify-center gap-4 px-4 py-8 text-xs text-zinc-500">
+      <footer className="mx-auto flex w-full max-w-3xl items-center justify-center gap-4 px-4 py-8 text-xs text-ink-subtle">
         <Link href="/privacy" className="hover:underline">
           Privacy
         </Link>

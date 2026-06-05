@@ -77,15 +77,15 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
           required
           className={input}
         />
-        <p className="text-xs text-zinc-500">At least 8 characters.</p>
+        <p className="text-xs text-ink-muted">At least 8 characters.</p>
       </div>
       {state?.error && <p className={errorText}>{state.error}</p>}
       <button type="submit" disabled={pending} className={btnPrimary}>
         {pending ? "Creating account…" : "Create account"}
       </button>
-      <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-center text-sm text-ink-muted">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-indigo-600">
+        <Link href="/login" className="font-medium text-honey-700">
           Sign in
         </Link>
       </p>

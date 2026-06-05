@@ -123,7 +123,7 @@ export function PushToggle({ compact = false }: { compact?: boolean }) {
   if (support === "unknown") return null;
   if (support === "unsupported") {
     return compact ? null : (
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-ink-muted">
         This browser doesn&apos;t support push notifications. Install Overlapp to
         your home screen on mobile to enable them.
       </p>
@@ -131,7 +131,7 @@ export function PushToggle({ compact = false }: { compact?: boolean }) {
   }
   if (support === "unconfigured") {
     return compact ? null : (
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-ink-muted">
         Push notifications aren&apos;t configured on this server.
       </p>
     );
@@ -159,10 +159,10 @@ export function PushToggle({ compact = false }: { compact?: boolean }) {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          <p className="text-sm font-medium text-ink">
             Push notifications on this device
           </p>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-ink-muted">
             {subscribed
               ? "On — you'll get proposals and reminders here."
               : "Off — get notified about proposals and reminders even when Overlapp is closed."}
@@ -189,7 +189,7 @@ export function PushToggle({ compact = false }: { compact?: boolean }) {
         )}
       </div>
       {permission === "denied" && (
-        <p className="text-xs text-amber-600 dark:text-amber-400">
+        <p className="text-xs text-honey-900">
           Notifications are blocked for this site. Re-enable them in your browser
           settings to turn this on.
         </p>

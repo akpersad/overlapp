@@ -11,13 +11,13 @@ export const metadata = { title: "Offline — Overlapp" };
 
 export default function OfflinePage() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 bg-bg p-6 text-center">
       <div className={`${card} w-full`}>
-        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-950" />
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-honey-100" />
+        <h1 className="text-h2 text-ink">
           You&apos;re offline
         </h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-2 text-sm text-ink-muted">
           Overlapp can&apos;t reach the network right now. Group calendars you
           opened recently are still viewable; everything else will load again
           once you&apos;re back online.

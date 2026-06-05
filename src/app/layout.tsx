@@ -1,15 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { ServiceWorker } from "@/components/ServiceWorker";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Display face — reserved for headings, hero, and big numbers-of-emphasis.
+// Variable, with the optical-size axis so large display copy gets the right
+// cut (DESIGN-BRIEF.md "Type").
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
+  axes: ["opsz"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Body / UI face — also carries the time gutter via `font-variant-numeric:
+// tabular-nums` (no separate mono font needed).
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -30,9 +36,13 @@ export const metadata: Metadata = {
   },
 };
 
-// theme-color drives the OS chrome around the installed app (the indigo accent).
+// theme-color drives the OS chrome around the installed app. Honey brand on the
+// light/cream theme; warm charcoal surface for the dark theme.
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#efa94a" },
+    { media: "(prefers-color-scheme: dark)", color: "#1b1915" },
+  ],
 };
 
 export default function RootLayout({
@@ -43,7 +53,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${bricolage.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ServiceWorker />

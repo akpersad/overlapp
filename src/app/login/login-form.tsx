@@ -42,9 +42,9 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       <button type="submit" disabled={pending} className={btnPrimary}>
         {pending ? "Signing in…" : "Sign in"}
       </button>
-      <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-center text-sm text-ink-muted">
         No account?{" "}
-        <Link href="/signup" className="font-medium text-indigo-600">
+        <Link href="/signup" className="font-medium text-honey-700">
           Sign up
         </Link>
       </p>

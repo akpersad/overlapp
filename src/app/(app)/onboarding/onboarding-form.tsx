@@ -37,7 +37,7 @@ export function OnboardingForm({
       <input type="hidden" name="last_name" value={lastName} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor="display_name" className={label}>
-          Display name <span className="text-zinc-400">(optional)</span>
+          Display name <span className="text-ink-subtle">(optional)</span>
         </label>
         <input
           id="display_name"
@@ -58,7 +58,7 @@ export function OnboardingForm({
           onChange={(e) => setTz(e.target.value)}
           className={input}
         />
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           Detected automatically — availability is always shown in your local
           time.
         </p>

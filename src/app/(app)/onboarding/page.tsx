@@ -19,10 +19,10 @@ export default async function OnboardingPage() {
           seed={profile.id}
           size={64}
         />
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-h1 text-ink">
           Welcome to Overlapp
         </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-ink-muted">
           A quick setup and you&apos;re in. Your initials avatar is ready — add a
           photo later if you like.
         </p>

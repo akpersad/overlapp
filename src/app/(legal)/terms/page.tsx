@@ -55,7 +55,7 @@ export default function TermsPage() {
         permission needed to store and display that information to provide the
         service — for example, showing your aggregated free/busy availability to
         the groups you join, as described in our{" "}
-        <a href="/privacy" className="text-indigo-600 hover:underline">
+        <a href="/privacy" className="text-honey-700 hover:underline">
           Privacy Policy
         </a>
         .
@@ -114,7 +114,7 @@ export default function TermsPage() {
         Questions about these Terms? Email us at{" "}
         <a
           href={`mailto:${CONTACT_EMAIL}`}
-          className="text-indigo-600 hover:underline"
+          className="text-honey-700 hover:underline"
         >
           {CONTACT_EMAIL}
         </a>

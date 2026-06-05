@@ -75,6 +75,26 @@
 - (Post-launch hardening, tracked separately: encrypt OAuth tokens at rest with
   Vault — `POST-LAUNCH.md`.)
 
+## Known correctness issues to resolve
+
+- **All-day busy events block the wrong local day (timezone bug).** Providers
+  express all-day events as *floating calendar dates* (Google `start.date =
+  "2026-06-06"`, no time/zone). Sync stores them as UTC-midnight instants
+  (`2026-06-06T00:00:00Z`), which is correct as storage but ambiguous without a
+  zone. The **display** was fixed (2026-06-05): `LocalTime`/`AllDayRange` now
+  render all-day events as dates in UTC ("Sat, Jun 6 · all day") instead of
+  shifting them into the viewer's zone. **Still open:** a *busy* all-day event
+  (e.g. an all-day "Vacation" with busy transparency) feeds the busy-interval
+  RPCs / heatmap with those UTC-midnight bounds, so for a viewer in EDT it blocks
+  `Jun 5 8 PM → Jun 6 8 PM` instead of the local calendar day. Free all-day
+  events (most birthdays/reminders) are unaffected since they never block.
+  Proper fix needs the user's timezone to expand a floating date into a local-day
+  interval — the system doesn't store a per-user tz for this yet. Affects both
+  Google and Microsoft (same UTC-midnight mapping). Touch points:
+  `src/lib/{google,microsoft}/calendar.ts` (mapping), the
+  `effective_event_busy_intervals` / `my_busy_intervals` / `group_heatmap` RPCs,
+  and wherever a viewer/owner timezone would be sourced.
+
 ## Final QA before flipping public
 
 - `npm test` (unit + integration) + `npm run test:e2e` green; `tsc`, `eslint`,

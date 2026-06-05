@@ -31,21 +31,21 @@ export function DeleteAccount({ ownedGroups }: { ownedGroups: OwnedGroup[] }) {
 
   return (
     <form action={deleteAccount} className="flex flex-col gap-4">
-      <p className="text-sm text-zinc-700 dark:text-zinc-300">
+      <p className="text-sm text-ink-muted">
         This permanently deletes your account, your availability, and your
         memberships. This can’t be undone.
       </p>
 
       {transferable.length > 0 && (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm text-ink-muted">
             You own {ownedGroups.length} group
             {ownedGroups.length === 1 ? "" : "s"}. Choose what happens to each —
             hand it to another member to keep it alive, or dissolve it.
           </p>
           {transferable.map((g) => (
             <label key={g.id} className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-zinc-800 dark:text-zinc-200">
+              <span className="font-medium text-ink">
                 {g.name}
               </span>
               {/* Defaults to transferring to the first eligible member (admins
@@ -64,7 +64,7 @@ export function DeleteAccount({ ownedGroups }: { ownedGroups: OwnedGroup[] }) {
       )}
 
       {dissolveOnly.length > 0 && (
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+        <p className="text-sm text-ink-muted">
           {dissolveOnly.length === 1 ? "One group" : `${dissolveOnly.length} groups`} you own (
           {dissolveOnly.map((g) => g.name).join(", ")}) {dissolveOnly.length === 1 ? "has" : "have"} no
           other members and will be <strong>dissolved</strong>.

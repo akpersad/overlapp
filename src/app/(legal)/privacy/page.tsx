@@ -73,7 +73,7 @@ export default function PrivacyPage() {
         received from Google APIs adheres to the{" "}
         <a
           href="https://developers.google.com/terms/api-services-user-data-policy"
-          className="text-indigo-600 hover:underline"
+          className="text-honey-700 hover:underline"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -101,7 +101,7 @@ export default function PrivacyPage() {
           imported events. You can also revoke Overlapp&rsquo;s access from your{" "}
           <a
             href="https://myaccount.google.com/permissions"
-            className="text-indigo-600 hover:underline"
+            className="text-honey-700 hover:underline"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -157,7 +157,7 @@ export default function PrivacyPage() {
         Questions about privacy? Email us at{" "}
         <a
           href={`mailto:${CONTACT_EMAIL}`}
-          className="text-indigo-600 hover:underline"
+          className="text-honey-700 hover:underline"
         >
           {CONTACT_EMAIL}
         </a>

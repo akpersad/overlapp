@@ -78,7 +78,7 @@ export function EditGroupForm({ group }: { group: Group }) {
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="quorum" className={label}>
-          Quorum <span className="text-zinc-400">(how many free counts as &ldquo;good enough&rdquo;)</span>
+          Quorum <span className="text-ink-subtle">(how many free counts as &ldquo;good enough&rdquo;)</span>
         </label>
         <input
           id="quorum"
@@ -90,7 +90,7 @@ export function EditGroupForm({ group }: { group: Group }) {
           placeholder="Everyone"
           className={input}
         />
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           Leave blank to require everyone. Set e.g. 4 to highlight slots where at
           least 4 members are free.
         </p>
@@ -103,7 +103,7 @@ export function EditGroupForm({ group }: { group: Group }) {
         <button
           type="button"
           onClick={() => router.push(`/groups/${group.id}`)}
-          className="text-sm text-zinc-500 hover:underline"
+          className="text-sm text-ink-muted hover:underline"
         >
           Done
         </button>

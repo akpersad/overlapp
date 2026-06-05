@@ -27,7 +27,7 @@ export default async function NotificationsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-h1 text-ink">
           Inbox
         </h1>
         {hasUnread && (
@@ -40,7 +40,7 @@ export default async function NotificationsPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className={`${card} text-center text-sm text-zinc-500`}>
+        <div className={`${card} text-center text-sm text-ink-muted`}>
           Nothing here yet. Proposals and reminders show up in your inbox.
         </div>
       ) : (
@@ -55,16 +55,16 @@ export default async function NotificationsPage() {
             const inner = (
               <div className="flex items-start gap-3">
                 {!n.read_at && (
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-600" />
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-honey-500" />
                 )}
                 <div className={n.read_at ? "ml-5" : ""}>
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <p className="text-sm font-medium text-ink">
                     {n.title}
                   </p>
                   {n.body && (
-                    <p className="text-xs text-zinc-500">{n.body}</p>
+                    <p className="text-xs text-ink-muted">{n.body}</p>
                   )}
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[10px] text-ink-subtle tabular">
                     <LocalTime iso={n.created_at} />
                   </p>
                 </div>
@@ -87,7 +87,7 @@ export default async function NotificationsPage() {
                 <form action={deleteNotification}>
                   <input type="hidden" name="notification_id" value={n.id} />
                   <button
-                    className="text-xs text-zinc-400 hover:text-red-600"
+                    className="text-xs text-ink-subtle hover:text-red-600"
                     title="Dismiss"
                   >
                     ✕
