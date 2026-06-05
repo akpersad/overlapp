@@ -82,11 +82,15 @@ function rangeFor(view: View, anchor: Date): { from: Date; to: Date; days: Date[
 export function Heatmap({
   groupId,
   slotMinutes,
+  initialView = "month",
 }: {
   groupId: string;
   slotMinutes: number;
+  // The group page opens on the month overview; the proposal flow opens on the
+  // week grid (where time decisions actually get made).
+  initialView?: View;
 }) {
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<View>(initialView);
   // The whole heatmap is anchored on the browser's clock + time zone (today,
   // the period label, the day grid). That makes it inherently non-deterministic
   // between the SSR pass (server clock/tz) and hydration (browser clock/tz), so

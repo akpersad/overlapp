@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { card } from "@/lib/ui";
+import { Heatmap } from "../../heatmap";
 import { ProposeForm } from "./propose-form";
 
 export const metadata = { title: "Propose a time · Overlapp" };
@@ -22,7 +23,7 @@ export default async function NewProposalPage({
 
   const { data: group } = await supabase
     .from("groups")
-    .select("id, name")
+    .select("id, name, slot_minutes")
     .eq("id", id)
     .maybeSingle();
   if (!group) notFound();
@@ -48,16 +49,38 @@ export default async function NewProposalPage({
         Propose a time
       </h1>
       <p className="text-body-sm text-ink-muted">
-        Seed a few candidate slots. Everyone marks which work for them, then you
-        lock the winner.
+        Seed a few candidate slots. Use the group&apos;s availability on the
+        right to pick times that already work — everyone marks which they can
+        do, then you lock the winner.
       </p>
-      <div className={card}>
-        <ProposeForm
-          groupId={group.id}
-          initialTitle={title ?? ""}
-          initialStart={start}
-          initialEnd={end}
-        />
+      {/* Form + a live reference heatmap so you can read the group's
+          availability without leaving the page. Mobile: form first, heatmap
+          reference below. Desktop: form left, heatmap right (sticky). */}
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className={card}>
+          <ProposeForm
+            groupId={group.id}
+            initialTitle={title ?? ""}
+            initialStart={start}
+            initialEnd={end}
+          />
+        </div>
+        <div className="flex flex-col gap-2 lg:sticky lg:top-4">
+          <h2 className="text-sm font-semibold text-ink">
+            Group availability
+          </h2>
+          <p className="text-xs text-ink-muted">
+            When the group is free. Deeper = more people available. Read a slot
+            here, then enter it on the left.
+          </p>
+          <div className={card}>
+            <Heatmap
+              groupId={group.id}
+              slotMinutes={group.slot_minutes}
+              initialView="week"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

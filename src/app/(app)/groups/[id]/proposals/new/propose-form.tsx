@@ -1,9 +1,29 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import {
+  useActionState,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { createProposal } from "@/lib/actions/proposals";
 import { btnPrimary, btnSecondary, errorText, input, label } from "@/lib/ui";
+
+// The full IANA zone list, sourced from the runtime's own ICU data so it never
+// drifts out of date. Computed lazily on the client (see the `mounted` guard in
+// the component) to dodge any server/browser ICU-version hydration mismatch.
+function tzList(): string[] {
+  try {
+    // supportedValuesOf is widely supported in modern browsers; guard anyway.
+    const sv = (
+      Intl as unknown as { supportedValuesOf?: (k: string) => string[] }
+    ).supportedValuesOf;
+    return sv ? sv("timeZone") : [];
+  } catch {
+    return [];
+  }
+}
 
 // One candidate slot, expressed in the proposer's local time (converted to UTC
 // ISO on submit, like the manual-block editor).
@@ -53,6 +73,29 @@ export function ProposeForm({
       end: seededEnd.time || "19:00",
     },
   ]);
+
+  // Pinned time zone is optional (empty = each member sees their own local
+  // zone). The dropdown is populated client-side only — see `tzList` — so we
+  // render just the default option during SSR/first paint and fill the list
+  // after mount to avoid a hydration mismatch from ICU-version drift.
+  const [pinnedTz, setPinnedTz] = useState("");
+  // "false during SSR + first client render, true after hydration" without a
+  // setState-in-effect (the subscription never fires) — same pattern the
+  // heatmap uses to gate clock/locale-dependent rendering past hydration.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const zones = useMemo(() => (mounted ? tzList() : []), [mounted]);
+  const localTz = useMemo(() => {
+    if (!mounted) return "";
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+    } catch {
+      return "";
+    }
+  }, [mounted]);
 
   function update(id: number, patch: Partial<Draft>) {
     setDrafts((cur) => cur.map((d) => (d.id === id ? { ...d, ...patch } : d)));
@@ -162,12 +205,23 @@ export function ProposeForm({
         <label htmlFor="pinned_tz" className={label}>
           Pin a time zone <span className="text-ink-subtle">(optional)</span>
         </label>
-        <input
+        <select
           id="pinned_tz"
           name="pinned_tz"
-          placeholder="e.g. America/New_York"
+          value={pinnedTz}
+          onChange={(e) => setPinnedTz(e.target.value)}
           className={input}
-        />
+        >
+          <option value="">
+            Each member&apos;s local time
+            {localTz ? ` (yours: ${localTz})` : ""}
+          </option>
+          {zones.map((tz) => (
+            <option key={tz} value={tz}>
+              {tz.replace(/_/g, " ")}
+            </option>
+          ))}
+        </select>
         <p className="text-xs text-ink-muted">
           Use when the event&apos;s zone matters (e.g. a flight). Otherwise times
           show in each member&apos;s local zone.
