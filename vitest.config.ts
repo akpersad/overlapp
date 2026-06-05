@@ -39,6 +39,8 @@ export default defineConfig({
             NEXT_PUBLIC_SITE_URL: "https://overlapp.test",
             GOOGLE_CLIENT_ID: "test-client-id.apps.googleusercontent.com",
             GOOGLE_CLIENT_SECRET: "test-client-secret",
+            MICROSOFT_CLIENT_ID: "test-ms-client-id",
+            MICROSOFT_CLIENT_SECRET: "test-ms-client-secret",
           },
         },
       },

@@ -3,12 +3,14 @@ import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import {
   connectGoogle,
+  connectMicrosoft,
   disconnectCalendar,
   setCalendarWriteback,
   syncNow,
 } from "@/lib/actions/calendars";
 import { requireUser } from "@/lib/auth";
 import { googleConfigured } from "@/lib/google/oauth";
+import { microsoftConfigured } from "@/lib/microsoft/oauth";
 import { createClient } from "@/lib/supabase/server";
 import { btnPrimary, btnSecondary, card } from "@/lib/ui";
 import type { Enums } from "@/lib/supabase/database.types";
@@ -42,6 +44,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   fromGmail: "From Gmail",
 };
 const humanizeCategory = (c: string) => CATEGORY_LABELS[c] ?? c;
+
+const PROVIDER_LABELS: Record<Enums<"calendar_provider">, string> = {
+  google: "Google",
+  microsoft: "Microsoft",
+  apple_caldav: "Apple",
+  ics: "Calendar",
+};
 
 const SYNC_LABELS: Record<Enums<"sync_status">, string> = {
   ok: "Synced",
@@ -113,7 +122,7 @@ export default async function CalendarsPage({
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
           {error === "not_configured"
-            ? "Google Calendar isn’t configured on this server yet."
+            ? "That calendar provider isn’t configured on this server yet."
             : `Couldn’t connect (${error}). Please try again.`}
         </p>
       )}
@@ -136,7 +145,9 @@ export default async function CalendarsPage({
               <li key={c.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    {c.display_name ?? c.provider_account ?? "Google Calendar"}
+                    {c.display_name ??
+                      c.provider_account ??
+                      `${PROVIDER_LABELS[c.provider]} Calendar`}
                   </p>
                   <p className="text-xs text-zinc-500">
                     {SYNC_LABELS[c.sync_state]}
@@ -187,16 +198,32 @@ export default async function CalendarsPage({
           </ul>
         )}
 
-        {googleConfigured() ? (
-          <form action={connectGoogle}>
-            <button className={btnPrimary}>
-              {hasCalendars ? "Connect another Google account" : "Connect Google Calendar"}
-            </button>
-          </form>
+        {googleConfigured() || microsoftConfigured() ? (
+          <div className="flex flex-wrap gap-2">
+            {googleConfigured() && (
+              <form action={connectGoogle}>
+                <button className={btnPrimary}>
+                  {hasCalendars
+                    ? "Connect another Google account"
+                    : "Connect Google Calendar"}
+                </button>
+              </form>
+            )}
+            {microsoftConfigured() && (
+              <form action={connectMicrosoft}>
+                <button className={btnPrimary}>
+                  {hasCalendars
+                    ? "Connect another Microsoft account"
+                    : "Connect Microsoft Calendar"}
+                </button>
+              </form>
+            )}
+          </div>
         ) : (
           <p className="text-sm text-zinc-500">
-            Google Calendar isn’t configured on this server. See{" "}
-            <code className="text-xs">docs/GOOGLE-SETUP.md</code>.
+            Calendar sync isn’t configured on this server. See{" "}
+            <code className="text-xs">docs/GOOGLE-SETUP.md</code> /{" "}
+            <code className="text-xs">docs/MICROSOFT-SETUP.md</code>.
           </p>
         )}
       </section>

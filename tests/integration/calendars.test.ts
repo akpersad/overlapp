@@ -14,15 +14,19 @@ import {
 
 let pidCounter = 0;
 
-async function addCalendar(userId: string, account = "primary"): Promise<string> {
+async function addCalendar(
+  userId: string,
+  account = "primary",
+  provider: "google" | "microsoft" = "google",
+): Promise<string> {
   const svc = serviceClient();
   const { data, error } = await svc
     .from("calendars")
     .insert({
       user_id: userId,
-      provider: "google",
+      provider,
       provider_account: account,
-      display_name: "Google",
+      display_name: provider === "microsoft" ? "Microsoft" : "Google",
     })
     .select("id")
     .single();
@@ -90,6 +94,31 @@ describe("calendars — owner-only RLS", () => {
 
     const theirs = await stranger.client.from("calendars").select("id");
     expect(theirs.data).toHaveLength(0);
+  });
+});
+
+describe("microsoft provider — shares the provider-agnostic DB path (Phase 6)", () => {
+  beforeEach(resetData);
+
+  it("stores a microsoft calendar, owner-scoped, and folds its events into busy time", async () => {
+    const me = await newUserClient();
+    const calId = await addCalendar(me.id, "me@outlook.com", "microsoft");
+    await addEvent(me.id, calId, {
+      starts_at: "2026-09-01T10:00:00Z",
+      ends_at: "2026-09-01T11:00:00Z",
+    });
+
+    const mine = await me.client.from("calendars").select("id, provider");
+    expect(mine.data).toHaveLength(1);
+    expect(mine.data?.[0]?.provider).toBe("microsoft");
+
+    // Other users still can't see it (same RLS as Google).
+    const stranger = await newUserClient();
+    expect((await stranger.client.from("calendars").select("id")).data).toHaveLength(0);
+
+    // Its events feed the availability RPC exactly like Google's do.
+    const { data } = await me.client.rpc("my_busy_intervals", { p_from: FROM, p_to: TO });
+    expect(data).toHaveLength(1);
   });
 });
 

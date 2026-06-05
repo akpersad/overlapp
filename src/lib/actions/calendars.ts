@@ -7,7 +7,12 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { buildAuthUrl, googleConfigured, OAUTH_STATE_COOKIE } from "@/lib/google/oauth";
-import { syncCalendar } from "@/lib/google/sync";
+import {
+  buildAuthUrl as buildMicrosoftAuthUrl,
+  microsoftConfigured,
+  MS_OAUTH_STATE_COOKIE,
+} from "@/lib/microsoft/oauth";
+import { syncCalendar } from "@/lib/calendar/sync";
 
 // Kick off the Google calendar OAuth flow. Sets a CSRF state cookie and sends
 // the user to Google's consent screen. The callback route finishes the connect.
@@ -28,6 +33,27 @@ export async function connectGoogle(): Promise<void> {
   });
 
   redirect(buildAuthUrl(state));
+}
+
+// Kick off the Microsoft (Outlook) calendar OAuth flow — the Google twin. Sets a
+// CSRF state cookie and sends the user to Microsoft's consent screen.
+export async function connectMicrosoft(): Promise<void> {
+  await requireUser("/calendars");
+  if (!microsoftConfigured()) {
+    redirect("/calendars?error=not_configured");
+  }
+
+  const state = crypto.randomUUID();
+  const jar = await cookies();
+  jar.set(MS_OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 600, // 10 minutes
+  });
+
+  redirect(buildMicrosoftAuthUrl(state));
 }
 
 // Disconnect a calendar. Owner-RLS delete cascades to its tokens + events.

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/notifications";
-import { writeBackProposal } from "@/lib/google/sync";
+import { writeBackProposal } from "@/lib/calendar/sync";
 
 export type ActionState = { error: string } | undefined;
 
