@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LocalTime } from "@/components/LocalTime";
+import { AllDayRange, LocalTime } from "@/components/LocalTime";
 import {
   connectGoogle,
   connectMicrosoft,
@@ -278,9 +278,18 @@ export default async function CalendarsPage({
                       {ev.title || "(busy)"}
                     </p>
                     <p className="text-xs text-ink-muted tabular">
-                      <LocalTime iso={ev.starts_at} />
-                      {" – "}
-                      <LocalTime iso={ev.ends_at} withDate={false} />
+                      {ev.is_all_day ? (
+                        <AllDayRange
+                          startsAt={ev.starts_at}
+                          endsAt={ev.ends_at}
+                        />
+                      ) : (
+                        <>
+                          <LocalTime iso={ev.starts_at} />
+                          {" – "}
+                          <LocalTime iso={ev.ends_at} withDate={false} />
+                        </>
+                      )}
                       {ev.category && ev.category !== "default" && (
                         <> · {humanizeCategory(ev.category)}</>
                       )}
