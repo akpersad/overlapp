@@ -104,10 +104,10 @@ export default async function CalendarsPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-h1 text-ink">
           Calendars
         </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-ink-muted">
           Connect a calendar and your events fill in your busy time
           automatically — <em>busy by default</em>. Co-members still only see{" "}
           <em>when</em> you&apos;re free, never your event titles.
@@ -115,7 +115,7 @@ export default async function CalendarsPage({
       </div>
 
       {connected && (
-        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950 dark:text-green-300">
+        <p className="rounded-lg bg-av-5/10 px-3 py-2 text-sm text-av-5">
           Calendar connected and synced ✓
         </p>
       )}
@@ -129,27 +129,27 @@ export default async function CalendarsPage({
 
       {/* Connect */}
       <section className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Connected calendars
         </h2>
 
         {!hasCalendars && (
-          <p className="mb-4 text-sm text-zinc-500">
+          <p className="mb-4 text-sm text-ink-muted">
             No calendars connected yet.
           </p>
         )}
 
         {hasCalendars && (
-          <ul className="mb-4 flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+          <ul className="mb-4 flex flex-col divide-y divide-border">
             {calendars!.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                  <p className="truncate text-sm font-medium text-ink">
                     {c.display_name ??
                       c.provider_account ??
                       `${PROVIDER_LABELS[c.provider]} Calendar`}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-ink-muted tabular">
                     {SYNC_LABELS[c.sync_state]}
                     {c.last_synced_at && c.sync_state === "ok" && (
                       <>
@@ -220,7 +220,7 @@ export default async function CalendarsPage({
             )}
           </div>
         ) : (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-ink-muted">
             Calendar sync isn’t configured on this server. See{" "}
             <code className="text-xs">docs/GOOGLE-SETUP.md</code> /{" "}
             <code className="text-xs">docs/MICROSOFT-SETUP.md</code>.
@@ -231,17 +231,17 @@ export default async function CalendarsPage({
       {/* Per-category rules */}
       {categories.length > 0 && (
         <section className={card}>
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h2 className="mb-1 text-h3 text-ink">
             Category rules
           </h2>
-          <p className="mb-3 text-xs text-zinc-500">
+          <p className="mb-3 text-xs text-ink-muted">
             Apply a default to a whole category of synced events. Per-event
             choices below still win.
           </p>
           <ul className="flex flex-col gap-2">
             {categories.map((cat) => (
               <li key={cat} className="flex items-center gap-3">
-                <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                <span className="text-sm text-ink">
                   {humanizeCategory(cat)}
                 </span>
                 <div className="ml-auto">
@@ -258,26 +258,26 @@ export default async function CalendarsPage({
 
       {/* Synced events */}
       <section className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Upcoming synced events ({events?.length ?? 0})
         </h2>
         {!events || events.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-ink-muted">
             {hasCalendars
               ? "No upcoming events in the sync window."
               : "Connect a calendar to see events here."}
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+          <ul className="flex flex-col divide-y divide-border">
             {events.map((ev) => {
               const busy = effectiveBusy(ev, categoryRules);
               return (
                 <li key={ev.id} className="flex items-center gap-3 py-2">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-zinc-800 dark:text-zinc-200">
+                    <p className="truncate text-sm text-ink">
                       {ev.title || "(busy)"}
                     </p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-ink-muted tabular">
                       <LocalTime iso={ev.starts_at} />
                       {" – "}
                       <LocalTime iso={ev.ends_at} withDate={false} />
@@ -289,8 +289,8 @@ export default async function CalendarsPage({
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       busy
-                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                        : "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
+                        ? "bg-honey-50 text-honey-900"
+                        : "bg-av-5 text-white"
                     }`}
                   >
                     {busy ? "Busy" : "Free"}
@@ -303,8 +303,8 @@ export default async function CalendarsPage({
         )}
       </section>
 
-      <p className="text-xs text-zinc-500">
-        <Link href="/availability" className="text-indigo-600 hover:underline">
+      <p className="text-xs text-ink-muted">
+        <Link href="/availability" className="text-honey-700 hover:underline">
           ← Manual availability blocks
         </Link>
       </p>

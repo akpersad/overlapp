@@ -24,9 +24,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-          Your groups
-        </h1>
+        <h1 className="text-h1 text-ink">Your groups</h1>
         <Link href="/groups/new" className={btnPrimary}>
           + New group
         </Link>
@@ -34,10 +32,8 @@ export default async function DashboardPage() {
 
       {active.length === 0 && pending.length === 0 && (
         <div className={`${card} text-center`}>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            You&apos;re not in any groups yet.
-          </p>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="text-h3 text-ink">You&apos;re not in any groups yet.</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">
             Create one and invite your crew — their availability shows up the
             moment they join.
           </p>
@@ -55,18 +51,16 @@ export default async function DashboardPage() {
               <li key={g.id}>
                 <Link
                   href={`/groups/${g.id}`}
-                  className={`${card} flex items-center justify-between transition-colors hover:border-indigo-400`}
+                  className={`${card} flex items-center justify-between transition-all duration-150 ease-soft hover:border-honey-300 hover:shadow-md`}
                 >
                   <div>
-                    <p className="font-semibold text-zinc-900 dark:text-zinc-50">
-                      {g.name}
-                    </p>
+                    <p className="text-h3 text-ink">{g.name}</p>
                     {g.description && (
-                      <p className="text-sm text-zinc-500">{g.description}</p>
+                      <p className="text-sm text-ink-muted">{g.description}</p>
                     )}
                   </div>
                   {m.role !== "member" && (
-                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                    <span className="rounded-full bg-honey-50 px-2.5 py-0.5 text-xs font-semibold text-honey-900">
                       {m.role}
                     </span>
                   )}
@@ -79,19 +73,15 @@ export default async function DashboardPage() {
 
       {pending.length > 0 && (
         <div>
-          <h2 className="mb-2 text-sm font-semibold text-zinc-500">
-            Awaiting approval
-          </h2>
+          <h2 className="mb-2 text-label">Awaiting approval</h2>
           <ul className="flex flex-col gap-2">
             {pending.map((m) => (
               <li
                 key={m.groups!.id}
                 className={`${card} flex items-center justify-between opacity-70`}
               >
-                <span className="text-zinc-700 dark:text-zinc-300">
-                  {m.groups!.name}
-                </span>
-                <span className="text-xs text-zinc-500">Pending</span>
+                <span className="text-ink">{m.groups!.name}</span>
+                <span className="text-xs text-ink-subtle">Pending</span>
               </li>
             ))}
           </ul>

@@ -11,7 +11,7 @@ export default async function AppLayout({
   const profile = await requireProfile();
 
   return (
-    <div className="min-h-dvh bg-zinc-50 dark:bg-black">
+    <div className="min-h-dvh bg-bg">
       <AppNav profile={profile} />
       <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
     </div>

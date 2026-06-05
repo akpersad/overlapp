@@ -82,7 +82,7 @@ export function RespondForm({
       <input type="hidden" name="responses" value={payload} />
 
       {!hasInitial && (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           Pre-filled from your availability — adjust anything, then save.
         </p>
       )}
@@ -93,7 +93,7 @@ export function RespondForm({
             key={o.id}
             className="flex flex-wrap items-center justify-between gap-2"
           >
-            <span className="text-sm text-zinc-800 dark:text-zinc-200">
+            <span className="text-sm text-ink tabular">
               <LocalTime iso={o.starts_at} /> –{" "}
               <LocalTime iso={o.ends_at} withDate={false} />
             </span>
@@ -107,8 +107,8 @@ export function RespondForm({
                     onClick={() => set(o.id, c.value)}
                     className={`rounded-md border px-3 py-1 text-xs ${
                       active
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+                        ? "border-honey-500 bg-honey-500 text-ink"
+                        : "border-border-strong bg-surface-sunken text-ink-muted"
                     }`}
                   >
                     {c.label}

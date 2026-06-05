@@ -58,14 +58,14 @@ export default async function InvitePage({
             {approval ? "Request to join" : "Join group"}
           </button>
           {approval && (
-            <p className="text-center text-xs text-zinc-500">
+            <p className="text-center text-xs text-ink-muted">
               An admin will approve your request.
             </p>
           )}
         </form>
       ) : (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-sm text-ink-muted">
             Sign up or log in to join.
           </p>
           <Link

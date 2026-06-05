@@ -34,10 +34,10 @@ export function InstallPrompt() {
   if (mode === "installed") {
     return (
       <div className={card}>
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-1 text-sm font-semibold text-ink">
           Stay in the loop
         </h2>
-        <p className="mb-3 text-xs text-zinc-500">
+        <p className="mb-3 text-xs text-ink-muted">
           Get notified when someone proposes a time or an event is locked.
         </p>
         <PushToggle compact />
@@ -48,10 +48,10 @@ export function InstallPrompt() {
   // Not installed: a gentle nudge to add to home screen (where push is enabled).
   return (
     <div className={card}>
-      <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+      <h2 className="mb-1 text-sm font-semibold text-ink">
         Add Overlapp to your home screen
       </h2>
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-ink-muted">
         {ios
           ? "Tap the Share button, then “Add to Home Screen” to install Overlapp and turn on notifications."
           : "Use your browser’s “Install app” option to add Overlapp to your home screen and turn on notifications."}

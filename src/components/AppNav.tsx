@@ -17,30 +17,30 @@ export async function AppNav({ profile }: { profile: Tables<"profiles"> }) {
   const unread = count ?? 0;
 
   return (
-    <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-black/90">
+    <header className="sticky top-0 z-10 border-b border-border bg-bg/85 backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-5">
           <Link
             href="/dashboard"
-            className="text-lg font-bold tracking-tight text-indigo-600"
+            className="font-display text-lg font-extrabold tracking-tight text-honey-700"
           >
             Overlapp
           </Link>
           <Link
             href="/dashboard"
-            className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="text-sm text-ink-muted transition-colors hover:text-ink"
           >
             Groups
           </Link>
           <Link
             href="/availability"
-            className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="text-sm text-ink-muted transition-colors hover:text-ink"
           >
             Availability
           </Link>
           <Link
             href="/calendars"
-            className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="text-sm text-ink-muted transition-colors hover:text-ink"
           >
             Calendars
           </Link>
@@ -49,11 +49,11 @@ export async function AppNav({ profile }: { profile: Tables<"profiles"> }) {
           <Link
             href="/notifications"
             title="Notifications"
-            className="relative text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="relative text-sm text-ink-muted transition-colors hover:text-ink"
           >
             Inbox
             {unread > 0 && (
-              <span className="absolute -right-3 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold text-white">
+              <span className="absolute -right-3 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-honey-500 px-1 text-[10px] font-semibold text-ink">
                 {unread > 9 ? "9+" : unread}
               </span>
             )}
@@ -61,7 +61,7 @@ export async function AppNav({ profile }: { profile: Tables<"profiles"> }) {
           <form action={signOut}>
             <button
               type="submit"
-              className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              className="text-sm text-ink-subtle transition-colors hover:text-ink"
             >
               Sign out
             </button>

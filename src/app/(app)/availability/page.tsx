@@ -23,44 +23,44 @@ export default async function AvailabilityPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-h1 text-ink">
           Your availability
         </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-ink-muted">
           Block out time you&apos;re not free. This feeds every group&apos;s
           heatmap — others only see{" "}
           <em>when</em> you&apos;re busy, never the label. Want it filled in
           automatically?{" "}
-          <Link href="/calendars" className="text-indigo-600 hover:underline">
+          <Link href="/calendars" className="text-honey-700 hover:underline">
             Connect a calendar →
           </Link>
         </p>
       </div>
 
       <section className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Add a block
         </h2>
         <BlockForm />
       </section>
 
       <section className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Blocked time ({blocks?.length ?? 0})
         </h2>
         {!blocks || blocks.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-ink-muted">
             Nothing blocked yet — you&apos;re wide open.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+          <ul className="flex flex-col divide-y divide-border">
             {blocks.map((b) => (
               <li key={b.id} className="flex items-center gap-3 py-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm text-zinc-800 dark:text-zinc-200">
+                  <p className="truncate text-sm text-ink">
                     {b.label || "Busy"}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-ink-muted tabular">
                     <LocalTime iso={b.starts_at} />
                     {" – "}
                     <LocalTime iso={b.ends_at} withDate={false} />

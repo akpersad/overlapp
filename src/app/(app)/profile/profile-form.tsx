@@ -49,7 +49,7 @@ export function ProfileForm({
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="display_name" className={label}>
-          Display name <span className="text-zinc-400">(optional)</span>
+          Display name <span className="text-ink-subtle">(optional)</span>
         </label>
         <input
           id="display_name"
@@ -76,7 +76,7 @@ export function ProfileForm({
           {pending ? "Saving…" : "Save"}
         </button>
         {saved && (
-          <span className="text-sm text-green-600 dark:text-green-400">
+          <span className="text-sm text-av-5">
             Saved ✓
           </span>
         )}

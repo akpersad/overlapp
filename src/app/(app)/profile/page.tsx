@@ -56,12 +56,12 @@ export default async function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+      <h1 className="text-h1 text-ink">
         Profile
       </h1>
 
       <div className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Photo
         </h2>
         <AvatarUpload
@@ -70,7 +70,7 @@ export default async function ProfilePage() {
           avatarUrl={profile.avatar_url}
           seed={profile.id}
         />
-        <p className="mt-3 text-sm text-zinc-500">{profile.email}</p>
+        <p className="mt-3 text-sm text-ink-muted">{profile.email}</p>
       </div>
 
       <div className={card}>
@@ -83,10 +83,10 @@ export default async function ProfilePage() {
       </div>
 
       <div className={card}>
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-1 text-h3 text-ink">
           Calendars
         </h2>
-        <p className="mb-3 text-sm text-zinc-500">
+        <p className="mb-3 text-sm text-ink-muted">
           Connect Google Calendar so your busy time fills in automatically.
         </p>
         <Link href="/calendars" className={btnSecondary}>
@@ -95,14 +95,14 @@ export default async function ProfilePage() {
       </div>
 
       <div className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Notifications
         </h2>
         <PushToggle />
       </div>
 
       <div className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Account
         </h2>
         <form action={signOut}>

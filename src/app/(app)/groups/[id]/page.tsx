@@ -57,14 +57,14 @@ export default async function GroupPage({
   if (me.status === "pending") {
     return (
       <div className="flex flex-col gap-4">
-        <Link href="/dashboard" className="text-sm text-zinc-500 hover:underline">
+        <Link href="/dashboard" className="text-sm text-ink-muted hover:underline">
           ← Back
         </Link>
         <div className={`${card} text-center`}>
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-h2 text-ink">
             {group.name}
           </h1>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-ink-muted">
             Your request to join is awaiting an admin&apos;s approval.
           </p>
           <form action={leaveGroup} className="mt-4">
@@ -164,26 +164,26 @@ export default async function GroupPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <Link href="/dashboard" className="text-sm text-zinc-500 hover:underline">
+        <Link href="/dashboard" className="text-sm text-ink-muted hover:underline">
           ← All groups
         </Link>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-h1 text-ink">
           {group.name}
         </h1>
         {group.description && (
-          <p className="text-zinc-600 dark:text-zinc-400">{group.description}</p>
+          <p className="text-ink-muted">{group.description}</p>
         )}
       </div>
 
       {/* The hero: aggregated availability */}
       <section className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           When everyone&apos;s free
         </h2>
         <Heatmap groupId={group.id} slotMinutes={group.slot_minutes} />
-        <p className="mt-3 text-xs text-zinc-500">
+        <p className="mt-3 text-xs text-ink-muted">
           Shown in your local time.{" "}
-          <Link href="/availability" className="text-indigo-600 hover:underline">
+          <Link href="/availability" className="text-honey-700 hover:underline">
             Update your availability →
           </Link>
         </p>
@@ -192,9 +192,7 @@ export default async function GroupPage({
       {/* Proposals (Phase 3 — multi-date scheduling) */}
       <section className={card}>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-            Proposals
-          </h2>
+          <h2 className="text-h3 text-ink">Proposals</h2>
           <Link
             href={`/groups/${group.id}/proposals/new`}
             className={`${btnSecondary} !py-1 !text-xs`}
@@ -203,12 +201,12 @@ export default async function GroupPage({
           </Link>
         </div>
         {proposals.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-ink-muted">
             No proposals yet. Seed a few candidate times and let the group mark
             availability.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+          <ul className="flex flex-col divide-y divide-border">
             {proposals.map((p) => {
               const final = p.final_option
                 ? finalTimes.get(p.final_option)
@@ -219,12 +217,12 @@ export default async function GroupPage({
                     href={`/groups/${group.id}/proposals/${p.id}`}
                     className="flex items-center gap-3 py-2 hover:opacity-80"
                   >
-                    <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                    <span className="text-sm text-ink">
                       {p.title}
                     </span>
                     <ProposalBadge status={p.status} />
                     {final && (
-                      <span className="ml-auto text-xs text-zinc-500">
+                      <span className="ml-auto text-xs text-ink-muted">
                         <LocalTime iso={final.starts_at} />
                       </span>
                     )}
@@ -239,16 +237,16 @@ export default async function GroupPage({
       {/* Recurring hangouts (Phase 4 — regular groups) */}
       {(hangouts.length > 0 || isAdmin) && (
         <section className={card}>
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h2 className="mb-3 text-h3 text-ink">
             Recurring hangouts
           </h2>
           {hangouts.length === 0 ? (
-            <p className="mb-3 text-sm text-zinc-500">
+            <p className="mb-3 text-sm text-ink-muted">
               Set up a standing get-together (e.g. game night every Friday).
               You can spin up a proposal from any upcoming date.
             </p>
           ) : (
-            <ul className="mb-1 flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+            <ul className="mb-1 flex flex-col divide-y divide-border">
               {hangouts.map((h) => {
                 const next = nextOccurrence.get(h.id);
                 return (
@@ -256,18 +254,18 @@ export default async function GroupPage({
                     key={h.id}
                     className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
                   >
-                    <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                    <span className="text-sm font-medium text-ink">
                       {h.title}
                     </span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-ink-muted">
                       {describeRrule(h.rrule)}
                     </span>
                     {next ? (
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-ink-subtle">
                         next <LocalTime iso={next.occ_start} />
                       </span>
                     ) : (
-                      <span className="text-xs text-zinc-400">no upcoming dates</span>
+                      <span className="text-xs text-ink-subtle">no upcoming dates</span>
                     )}
                     <div className="ml-auto flex items-center gap-3">
                       {next && (
@@ -277,7 +275,7 @@ export default async function GroupPage({
                           )}&start=${encodeURIComponent(
                             next.occ_start,
                           )}&end=${encodeURIComponent(next.occ_end)}`}
-                          className="text-xs text-indigo-600 hover:underline"
+                          className="text-xs text-honey-700 hover:underline"
                         >
                           Propose this
                         </Link>
@@ -304,7 +302,7 @@ export default async function GroupPage({
       {/* Pending approvals (admins) */}
       {isAdmin && pendingMembers.length > 0 && (
         <section className={card}>
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h2 className="mb-3 text-h3 text-ink">
             Requests to join
           </h2>
           <ul className="flex flex-col gap-2">
@@ -319,7 +317,7 @@ export default async function GroupPage({
                     seed={p.id}
                     size={32}
                   />
-                  <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                  <span className="text-sm text-ink">
                     {displayName(p)}
                   </span>
                   <div className="ml-auto flex gap-2">
@@ -347,7 +345,7 @@ export default async function GroupPage({
 
       {/* Members */}
       <section className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           Members ({active.length})
         </h2>
         <ul className="flex flex-col gap-3">
@@ -363,11 +361,11 @@ export default async function GroupPage({
                   seed={p.id}
                   size={32}
                 />
-                <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                <span className="text-sm text-ink">
                   {displayName(p)}
-                  {isSelf && <span className="text-zinc-400"> (you)</span>}
+                  {isSelf && <span className="text-ink-subtle"> (you)</span>}
                 </span>
-                <span className="text-xs text-zinc-400">{m.role}</span>
+                <span className="text-xs text-ink-subtle">{m.role}</span>
 
                 {isAdmin && m.role !== "owner" && !isSelf && (
                   <div className="ml-auto flex items-center gap-2">
@@ -390,7 +388,7 @@ export default async function GroupPage({
                       <form action={transferOwnership}>
                         <input type="hidden" name="group_id" value={group.id} />
                         <input type="hidden" name="user_id" value={m.user_id} />
-                        <button className="text-xs text-zinc-500 hover:underline">
+                        <button className="text-xs text-ink-muted hover:underline">
                           Make owner
                         </button>
                       </form>
@@ -413,7 +411,7 @@ export default async function GroupPage({
       {/* Invites (admins) */}
       {isAdmin && (
         <section className={card}>
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h2 className="mb-3 text-h3 text-ink">
             Invite people
           </h2>
           <InvitePanel
@@ -427,7 +425,7 @@ export default async function GroupPage({
 
       {/* Danger zone */}
       <section className={card}>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <h2 className="mb-3 text-h3 text-ink">
           {isOwner ? "Manage group" : "Leave"}
         </h2>
         <div className="flex flex-wrap gap-3">
@@ -449,7 +447,7 @@ export default async function GroupPage({
           )}
         </div>
         {isOwner && (
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-ink-muted">
             To leave, transfer ownership to another member first, or dissolve the
             group.
           </p>
@@ -461,10 +459,12 @@ export default async function GroupPage({
 
 function ProposalBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    open: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
-    locked: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-    cancelled: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
-    draft: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+    // Open = honey (live, awaiting input); locked = the pine "settled" green;
+    // cancelled/draft = a quiet sunken chip.
+    open: "bg-honey-50 text-honey-900",
+    locked: "bg-av-5 text-white",
+    cancelled: "bg-surface-sunken text-ink-subtle",
+    draft: "bg-surface-sunken text-ink-subtle",
   };
   return (
     <span
@@ -493,7 +493,7 @@ function RoleForm({
       <input type="hidden" name="group_id" value={groupId} />
       <input type="hidden" name="user_id" value={userId} />
       <input type="hidden" name="role" value={role} />
-      <button className="text-xs text-indigo-600 hover:underline">{label}</button>
+      <button className="text-xs text-honey-700 hover:underline">{label}</button>
     </form>
   );
 }

@@ -37,10 +37,10 @@ export default async function EditGroupPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href={`/groups/${id}`} className="text-sm text-zinc-500 hover:underline">
+      <Link href={`/groups/${id}`} className="text-sm text-ink-muted hover:underline">
         ← Back to group
       </Link>
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+      <h1 className="text-h1 text-ink">
         Group settings
       </h1>
       <div className={card}>

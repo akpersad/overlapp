@@ -5,26 +5,39 @@
 
 ## TL;DR — where we are
 
-**Phase 7 (visual design) is IN PROGRESS — direction LOCKED, build not yet started (2026-06-05).**
-Branch `feature/phase-7-visual-design` (off `main` @ `c3e59e6`, which has P1–P6). The design
-direction is fully settled with the owner and banked in **[`docs/DESIGN-BRIEF.md`](DESIGN-BRIEF.md)**
-— READ THAT FIRST for Phase 7, it is the implementation source of truth (exact color tokens, type,
-radius/shadow/motion, and the heatmap rendering spec). Summary of the locked choices:
-- **Tone:** warm & social. **Direction #3 "Bright & Friendly"** — Honey `#EFA94A` brand + deep-pine
-  availability ramp (`#E9E6DA`→`#1A6B50`, 6 buckets) + sunny cream base `#FAF7F0`.
-- **Type:** Bricolage Grotesque (display) + Inter (body) + Inter `tabular-nums` for the time gutter.
-- **Components:** bespoke Tailwind (no shadcn). **Process:** code-first (Figma ruled out — owner's
-  Figma is work-only enterprise seats: can't author + IP risk). **Theme:** light/cream-first, dark
-  tokens defined for later tuning.
-- **Five design skills installed** into `.agents/skills/` (symlinked to `.claude/skills/`):
-  `emil-design-eng`, `impeccable`, `design-taste-frontend`, `design-for-ai`, `ui-ux-pro-max`
-  (+ its `ckm-*` bundle). All untracked (also `skills-lock.json`) — decide gitignore-vs-commit.
-- **Build order (not started):** (1) `globals.css` tokens + fonts in `layout.tsx` + Tailwind
-  `@theme` map → (2) tokenize `src/lib/ui.ts` → (3) in-app `/design` style-guide page → (4) heatmap
-  (hero) → group → dashboard → proposals → onboarding/auth → landing → legal → (5) a11y + 375px pass.
-- Current UI to replace is **zinc + indigo**: `src/lib/ui.ts` (all class strings), `heatmap.tsx`
-  (hardcoded `rgba(79,70,229,…)` ramp → must become token-driven), `layout.tsx` (Geist + indigo
-  `themeColor`). Reference board + anti-patterns are in the brief.
+**Phase 7 (visual design) is COMPLETE and verified (2026-06-05).** Branch
+`feature/phase-7-visual-design` (off `main` @ `c3e59e6`, which has P1–P6). The whole app was moved
+onto the "Bright & Friendly" warm-social system from **[`docs/DESIGN-BRIEF.md`](DESIGN-BRIEF.md)**
+(the implementation source of truth — tokens, type, radius/shadow/motion, heatmap spec):
+- **Foundations** (`8ec7d67`): `src/app/globals.css` now defines the full semantic-token set as CSS
+  variables (honey brand, warm-cream neutrals, deep-pine availability ramp `--av-0..5`,
+  radius/shadow/motion) + an `@theme inline` map exposing them as Tailwind utilities (`bg-surface`,
+  `text-ink`, `text-honey-700`, `bg-av-5`, `rounded-lg`, `shadow-sm`, `ease-soft`, …), the type
+  scale as component classes (`text-display-xl`…`text-time`, `tabular`), and a global
+  `prefers-reduced-motion` guard. Dark-mode token values are defined (OS-preference `@media`) but
+  only lightly tuned — **the dark pass is the one remaining polish item.** `layout.tsx` loads
+  **Bricolage Grotesque** (`--font-bricolage`, display) + **Inter** (`--font-inter`, body) via
+  `next/font/google`; `theme-color` is honey/charcoal per scheme. `src/lib/ui.ts` btn/input/card/
+  label are tokenized (honey focus ring, primary = honey-500 fill + ink text). A living
+  **`/design`** style-guide page (public + `noindex`, in proxy `PUBLIC_PATHS`) shows every token +
+  component.
+- **Every screen converted** (this commit): all 38 user-facing surfaces moved off raw
+  zinc/indigo to the tokens — shared chrome (`AppNav`, app+legal layouts, `AuthCard`), the **hero
+  heatmap** (`heatmap.tsx`: the hardcoded `rgba(79,70,229,…)` ramp is now the bucketed
+  `--av-0..5` pine ramp in a sunken cream well, rounded 5px cells with free-count, tabular time
+  gutter, **honey inset outline for quorum** — shape cue not hue, CVD-safe), group page, dashboard,
+  proposals (new + detail, honey RSVP toggles), onboarding/auth, the **landing page** (warm hero
+  with a real mini-heatmap preview instead of a templated feature-triplet), legal, profile,
+  calendars, availability, notifications, invite, offline, group new/edit. Red is kept only as the
+  semantic danger colour. Headings use the display face via the type-scale classes.
+- **Vendored design skills** are gitignored (`.agents/` + `.claude/skills/`); `skills-lock.json`
+  (the reinstall manifest) is committed. `eslint.config.mjs` ignores `.agents/**` + `.claude/**`.
+- **Verified:** `tsc`, `eslint`, `next build` (all 25 routes) green; **54 unit + 87 integration
+  (141)** + the Playwright **e2e core-loop** green; every screen screenshot-reviewed at 1280px and
+  375px (incl. the real heatmap with a 4-member seeded ramp + quorum rings), screenshots deleted.
+- **Known follow-ups (not blockers):** (1) the **dark-mode pass** (tokens exist, values need
+  tuning + a per-screen review); (2) the authed top **nav is dense at 375px** (the "Sign out" link
+  wraps) — a small responsive/condense pass would help; pre-existing, not introduced here.
 
 ---
 

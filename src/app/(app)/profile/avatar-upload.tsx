@@ -41,7 +41,7 @@ export function AvatarUpload({
             const file = e.target.files?.[0];
             setPreview(file ? URL.createObjectURL(file) : null);
           }}
-          className="block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200"
+          className="block w-full text-sm text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface-sunken file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink-muted hover:file:bg-border"
         />
         <div className="flex items-center gap-3">
           <button type="submit" disabled={pending} className={`${btnPrimary} !py-1.5 !text-xs`}>
@@ -51,16 +51,16 @@ export function AvatarUpload({
             <button
               type="submit"
               formAction={removeAvatar}
-              className="text-xs text-zinc-500 hover:underline"
+              className="text-xs text-ink-muted hover:underline"
             >
               Remove
             </button>
           )}
           {saved && (
-            <span className="text-xs text-green-600 dark:text-green-400">Saved ✓</span>
+            <span className="text-xs text-av-5">Saved ✓</span>
           )}
         </div>
-        <p className="text-xs text-zinc-400">PNG/JPG, up to 2 MB. Defaults to your initials.</p>
+        <p className="text-xs text-ink-subtle">PNG/JPG, up to 2 MB. Defaults to your initials.</p>
         {state && "error" in state && <p className={errorText}>{state.error}</p>}
       </div>
     </form>

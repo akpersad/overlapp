@@ -38,7 +38,7 @@ export function BlockForm() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="label" className={label}>
-          Label <span className="text-zinc-400">(optional, only you see it)</span>
+          Label <span className="text-ink-subtle">(optional, only you see it)</span>
         </label>
         <input
           id="label"
@@ -113,8 +113,8 @@ export function BlockForm() {
                 onClick={() => toggleDay(d)}
                 className={`rounded-md border px-2 py-1 text-xs ${
                   days.includes(d)
-                    ? "border-indigo-600 bg-indigo-600 text-white"
-                    : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+                    ? "border-honey-500 bg-honey-500 text-ink"
+                    : "border-border-strong text-ink-muted hover:bg-surface-sunken"
                 }`}
               >
                 {weekdayLabel(d)}

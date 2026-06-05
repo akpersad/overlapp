@@ -53,7 +53,7 @@ export function HangoutForm({ groupId }: { groupId: string }) {
   const canSubmit = Boolean(rrule && startsAt && endsAt);
 
   return (
-    <form action={action} className="mt-2 flex flex-col gap-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+    <form action={action} className="mt-2 flex flex-col gap-4 border-t border-border pt-4">
       <input type="hidden" name="group_id" value={groupId} />
       <input type="hidden" name="starts_at" value={startsAt} />
       <input type="hidden" name="ends_at" value={endsAt} />
@@ -74,7 +74,7 @@ export function HangoutForm({ groupId }: { groupId: string }) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="hangout_desc" className={label}>
-          Details <span className="text-zinc-400">(optional)</span>
+          Details <span className="text-ink-subtle">(optional)</span>
         </label>
         <input id="hangout_desc" name="description" className={input} />
       </div>
@@ -142,10 +142,10 @@ export function HangoutForm({ groupId }: { groupId: string }) {
                 key={d}
                 type="button"
                 onClick={() => toggleDay(d)}
-                className={`rounded-md border px-2 py-1 text-xs ${
+                className={`rounded-md border px-2 py-1 text-xs transition-colors ${
                   days.includes(d)
-                    ? "border-indigo-600 bg-indigo-600 text-white"
-                    : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+                    ? "border-honey-500 bg-honey-500 text-ink"
+                    : "border-border-strong text-ink-muted hover:bg-surface-sunken"
                 }`}
               >
                 {weekdayLabel(d)}
@@ -154,7 +154,7 @@ export function HangoutForm({ groupId }: { groupId: string }) {
           </div>
         )}
         {repeat === "weekly" && days.length === 0 && (
-          <p className="text-xs text-zinc-400">Pick at least one day.</p>
+          <p className="text-xs text-ink-subtle">Pick at least one day.</p>
         )}
       </div>
 

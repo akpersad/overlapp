@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { setCategoryOverride, setEventOverride } from "@/lib/actions/calendars";
 
 const selectClass =
-  "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
+  "rounded-md border border-border-strong bg-surface px-2 py-1 text-xs text-ink outline-none focus:border-honey-300";
 
 // Per-event override: Default / Free / Blocked. Auto-submits on change.
 export function EventOverrideForm({
