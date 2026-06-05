@@ -107,6 +107,25 @@ grid misalignment was newly noted in `PRE-LAUNCH.md` as a low-priority follow-up
 Remaining PRE-LAUNCH items are all owner/ops actions (OAuth verification, deploy, DMARC, confirm the
 `CONTACT_EMAIL` mailbox, advisor re-review), not code.
 
+**Heatmap month/week/day views (2026-06-05).** Same branch `fix/pre-launch-functional`. Per owner
+direction, the group calendar (`src/app/(app)/groups/[id]/heatmap.tsx`) now **defaults to a month
+view** with a **Month / Week / Day** switcher — the right home for the "persistent shared calendar"
+north star (a week grid suits one-off polls; the month suits a calendar that lives continuously):
+- **Month (default)** — a real calendar grid; each day is tinted on the same deep-pine `--av-0..5`
+  ramp by the group's **average availability** across the meetable-hours window (7a–11p), shown as a
+  `%`. Today gets a honey ring, out-of-month days dim, **clicking a day drills into Day view.**
+- **Week** — the original 30-min (group-settable) slot grid, unchanged.
+- **Day** — a single-day column of that same slot grid.
+- **No backend/migration change.** A month grid is ≤ 42 days, inside `group_heatmap`'s 45-day cap,
+  so it's one RPC call; month view fetches at **hourly** granularity (a daily average doesn't need
+  30-min slots → light payload) and aggregates **client-side**, because day boundaries + the 7a–11p
+  window are viewer-local while the RPC speaks UTC. The offline `localStorage` cache and the Phase-5
+  realtime doorbell both generalized to the active view (cache key now includes view + range).
+- **Verified:** `tsc`/`eslint` green; **54 unit + 90 integration (144)** green; Playwright e2e
+  core-loop green (run with `GOOGLE_/MICROSOFT_CLIENT_ID/SECRET=""`, since `next dev` reloads
+  `.env.local` — setting them empty keeps the calendars page in its "not configured" state for e2e);
+  month view screenshot-reviewed (375px). The "1" in a slot cell = the count of members free.
+
 ---
 
 **Phase 5 (launch readiness & UX polish) is COMPLETE and tested (2026-06-04).** Built on branch
