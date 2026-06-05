@@ -144,7 +144,7 @@ export function HangoutForm({ groupId }: { groupId: string }) {
                 onClick={() => toggleDay(d)}
                 className={`rounded-md border px-2 py-1 text-xs transition-colors ${
                   days.includes(d)
-                    ? "border-honey-500 bg-honey-500 text-ink"
+                    ? "border-honey-500 bg-honey-500 text-on-accent"
                     : "border-border-strong text-ink-muted hover:bg-surface-sunken"
                 }`}
               >

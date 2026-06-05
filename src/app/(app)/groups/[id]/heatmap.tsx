@@ -309,14 +309,14 @@ function avBucket(freeCount: number, total: number, everyoneFree: boolean) {
 
 function HeatCell({ slot, label }: { slot?: Slot; label: string }) {
   if (!slot || slot.total_members === 0) {
-    // Warm empty — sits in the cream family, never a grey box.
-    return (
-      <div className="h-[18px] rounded-[5px] bg-av-0/60" aria-hidden />
-    );
+    // Warm empty — sits in the cream family (charcoal family in dark), never a grey box.
+    return <div className="h-[18px] rounded-[5px] bg-av-0" aria-hidden />;
   }
   const bucket = avBucket(slot.free_count, slot.total_members, slot.everyone_free);
   // Cell text: ink on the light end (av-0..2), white on the dark end (av-3..5).
-  const textColor = bucket >= 3 ? "#ffffff" : "var(--ink)";
+  // av-1/av-2 are light greens in BOTH themes, so their number stays dark
+  // (--on-accent, constant); av-3..5 are deep enough for white. (bucket 0 = no number.)
+  const textColor = bucket >= 3 ? "#ffffff" : "var(--on-accent)";
   // The quorum verdict only differs from "everyone" when a quorum < total is
   // set, so naming it in the tooltip stays informative either way.
   const quorumNote =

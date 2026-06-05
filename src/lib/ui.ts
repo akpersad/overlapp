@@ -11,7 +11,7 @@ export const btn =
   `inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 ease-soft disabled:opacity-50 disabled:pointer-events-none ${focusRing}`;
 
 // Primary = honey-500 fill + ink text (NOT white — white fails contrast on honey).
-export const btnPrimary = `${btn} bg-honey-500 text-ink shadow-xs hover:bg-honey-600`;
+export const btnPrimary = `${btn} bg-honey-500 text-on-accent shadow-xs hover:bg-honey-600`;
 
 export const btnSecondary = `${btn} border border-border-strong bg-surface text-ink hover:bg-surface-sunken`;
 

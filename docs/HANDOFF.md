@@ -35,9 +35,20 @@ onto the "Bright & Friendly" warm-social system from **[`docs/DESIGN-BRIEF.md`](
 - **Verified:** `tsc`, `eslint`, `next build` (all 25 routes) green; **54 unit + 87 integration
   (141)** + the Playwright **e2e core-loop** green; every screen screenshot-reviewed at 1280px and
   375px (incl. the real heatmap with a 4-member seeded ramp + quorum rings), screenshots deleted.
-- **Known follow-ups (not blockers):** (1) the **dark-mode pass** (tokens exist, values need
-  tuning + a per-screen review); (2) the authed top **nav is dense at 375px** (the "Sign out" link
-  wraps) — a small responsive/condense pass would help; pre-existing, not introduced here.
+- **Mobile (375px) pass — DONE (2026-06-05).** The authed shell now uses a **bottom tab bar**
+  (`src/components/BottomNav.tsx`, client, `usePathname` for the active tab — Groups / Availability /
+  Calendars / Inbox with inline SVG icons + unread badge) on mobile, with the top bar slimmed to
+  wordmark + avatar; the inline top-nav links + Sign out are `sm:`-only. `(app)/layout.tsx` main has
+  `pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-6` to clear the fixed bar. Verified at 375px and
+  430px (iPhone Pro Max); the heatmap scrolls horizontally as designed.
+- **Dark-mode pass — DONE (2026-06-05).** Warm-charcoal token values tuned in `globals.css`. The key
+  subtlety: `--ink` flips to near-white in dark, so anywhere dark text sits on a **bright** fill
+  (honey buttons/badges, the light av-1/av-2 heatmap cells) now uses a **constant** `--on-accent`
+  (#2a2820) instead of `--ink`; and the "text-safe" accent tokens that are dark on cream
+  (`--honey-700`/`--honey-900`) + the tinted chip backgrounds (`--honey-50`/`--honey-100`) get
+  light/subtle dark-mode overrides so links, chips, and warnings stay readable on charcoal. Driven by
+  `prefers-color-scheme`; screenshot-reviewed light + dark across landing, /design, dashboard, group
+  (heatmap), proposals, mobile. No remaining design blockers.
 
 ---
 

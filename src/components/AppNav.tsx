@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Avatar } from "@/components/Avatar";
+import { BottomNav } from "@/components/BottomNav";
 import { signOut } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -17,6 +18,7 @@ export async function AppNav({ profile }: { profile: Tables<"profiles"> }) {
   const unread = count ?? 0;
 
   return (
+    <>
     <header className="sticky top-0 z-10 border-b border-border bg-bg/85 backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-5">
@@ -26,21 +28,22 @@ export async function AppNav({ profile }: { profile: Tables<"profiles"> }) {
           >
             Overlapp
           </Link>
+          {/* Inline section links — desktop only; mobile uses the bottom tab bar. */}
           <Link
             href="/dashboard"
-            className="text-sm text-ink-muted transition-colors hover:text-ink"
+            className="hidden text-sm text-ink-muted transition-colors hover:text-ink sm:inline"
           >
             Groups
           </Link>
           <Link
             href="/availability"
-            className="text-sm text-ink-muted transition-colors hover:text-ink"
+            className="hidden text-sm text-ink-muted transition-colors hover:text-ink sm:inline"
           >
             Availability
           </Link>
           <Link
             href="/calendars"
-            className="text-sm text-ink-muted transition-colors hover:text-ink"
+            className="hidden text-sm text-ink-muted transition-colors hover:text-ink sm:inline"
           >
             Calendars
           </Link>
@@ -49,16 +52,16 @@ export async function AppNav({ profile }: { profile: Tables<"profiles"> }) {
           <Link
             href="/notifications"
             title="Notifications"
-            className="relative text-sm text-ink-muted transition-colors hover:text-ink"
+            className="relative hidden text-sm text-ink-muted transition-colors hover:text-ink sm:inline"
           >
             Inbox
             {unread > 0 && (
-              <span className="absolute -right-3 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-honey-500 px-1 text-[10px] font-semibold text-ink">
+              <span className="absolute -right-3 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-honey-500 px-1 text-[10px] font-semibold text-on-accent">
                 {unread > 9 ? "9+" : unread}
               </span>
             )}
           </Link>
-          <form action={signOut}>
+          <form action={signOut} className="hidden sm:block">
             <button
               type="submit"
               className="text-sm text-ink-subtle transition-colors hover:text-ink"
@@ -78,5 +81,7 @@ export async function AppNav({ profile }: { profile: Tables<"profiles"> }) {
         </div>
       </nav>
     </header>
+    <BottomNav unread={unread} />
+    </>
   );
 }

@@ -191,9 +191,10 @@ brand + deep-pine availability ramp + cream base, Bricolage Grotesque (display) 
 as semantic CSS-variable tokens in `src/app/globals.css` (mapped to Tailwind via `@theme inline`),
 referenced through `src/lib/ui.ts` + a `/design` style-guide page. All 38 user-facing surfaces moved
 off raw zinc/indigo (the heatmap hero uses the bucketed `--av-0..5` pine ramp + honey quorum
-outline). `tsc`/`eslint`/`next build`/**141 unit+integration**/e2e green; screenshot-reviewed at
-1280px + 375px. **Remaining polish (non-blocking): a dark-mode pass** (tokens defined, values need
-tuning) and a small **375px nav-density** condense. Full record in `docs/HANDOFF.md`.
+outline). Includes a **mobile bottom-tab-bar** nav (`BottomNav.tsx`) for the 375–430px phone target
+and a tuned **dark mode** (warm charcoal; a constant `--on-accent` token carries dark text on bright
+fills since `--ink` flips). `tsc`/`eslint`/`next build`/**141 unit+integration**/e2e green;
+screenshot-reviewed light + dark at 1280px + 375px. Full record in `docs/HANDOFF.md`.
 
 **Next:** owner-driven pre-launch work (OAuth verification, deploy) in
 [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).

@@ -107,7 +107,7 @@ export function RespondForm({
                     onClick={() => set(o.id, c.value)}
                     className={`rounded-md border px-3 py-1 text-xs ${
                       active
-                        ? "border-honey-500 bg-honey-500 text-ink"
+                        ? "border-honey-500 bg-honey-500 text-on-accent"
                         : "border-border-strong bg-surface-sunken text-ink-muted"
                     }`}
                   >

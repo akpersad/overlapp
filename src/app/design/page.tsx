@@ -214,7 +214,7 @@ export default function DesignSystemPage() {
                     className="flex h-14 w-14 items-center justify-center rounded-[5px] text-sm font-semibold tabular"
                     style={{
                       background: `var(${c.v})`,
-                      color: c.light ? "var(--ink)" : "#ffffff",
+                      color: c.light ? "var(--on-accent)" : "#ffffff",
                     }}
                   >
                     {c.n}
@@ -237,7 +237,7 @@ export default function DesignSystemPage() {
                         className="flex h-9 flex-1 items-center justify-center rounded-[5px] text-xs font-semibold tabular"
                         style={{
                           background: `var(${v})`,
-                          color: light ? "var(--ink)" : "#ffffff",
+                          color: light ? "var(--on-accent)" : "#ffffff",
                           outline: quorum
                             ? "2px solid var(--av-quorum-ring)"
                             : undefined,

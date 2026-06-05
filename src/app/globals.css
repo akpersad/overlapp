@@ -27,6 +27,10 @@
   --honey-700: #b26a1e; /* text-safe — links, accent text on cream (AA) */
   --honey-900: #7a4712; /* deep accent text / icons */
 
+  /* Text that sits ON bright fills (honey buttons, badges, light heatmap cells).
+     Constant — it does NOT flip in dark mode, because those fills stay bright. */
+  --on-accent: #2a2820;
+
   /* --- Availability ramp — deep pine (the hero data scale) ---
      6 buckets, monochrome green lightness scale → CVD-safe on its own. */
   --av-0: #e9e6da; /* none free (warm empty, in the cream family) */
@@ -72,6 +76,13 @@
     --border-strong: rgba(255, 240, 210, 0.16);
     --honey-500: #f2b25c; /* lift slightly for glow on dark */
     --av-0: #2a2820; /* deepen the empty cell on charcoal */
+    /* Accent text + tinted chips must read on charcoal: lift the "text-safe"
+       honeys to light values, and make the chip backgrounds a subtle dark-honey
+       tint (instead of the bright cream they are on light). */
+    --honey-700: #f2c572; /* links / accent text → light honey on dark */
+    --honey-900: #f6cd86; /* chip text + warnings → light honey on dark */
+    --honey-50: rgba(242, 178, 92, 0.16); /* pill / tag bg → subtle tint */
+    --honey-100: rgba(242, 178, 92, 0.24); /* hover wash */
   }
 }
 
@@ -97,6 +108,7 @@
   --color-honey-600: var(--honey-600);
   --color-honey-700: var(--honey-700);
   --color-honey-900: var(--honey-900);
+  --color-on-accent: var(--on-accent);
 
   --color-av-0: var(--av-0);
   --color-av-1: var(--av-1);
