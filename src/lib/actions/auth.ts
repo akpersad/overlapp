@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { track } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 // Auth Server Actions. Supabase (@supabase/ssr) owns session cookies; these
 // wrap its API and translate results into form state / redirects. Every action
@@ -78,6 +80,13 @@ export async function signUp(
 
   if (error) return { error: error.message };
 
+  // Activation funnel: record the signup before we redirect (redirect() throws,
+  // so it must come first). via_invite tells us how many signups arrive through
+  // a share link vs. cold — the growth loop.
+  if (data.user) {
+    await track(EVENTS.SIGNED_UP, data.user.id, { via_invite: Boolean(inviteToken) });
+  }
+
   // Confirmations off (local/dev) → a session exists immediately → onboard.
   // Confirmations on (prod) → no session yet → tell them to verify their email.
   if (data.session) {
@@ -99,8 +108,10 @@ export async function signIn(
   if (!email || !password) return { error: "Email and password are required." };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: error.message };
+
+  if (data.user) await track(EVENTS.SIGNED_IN, data.user.id);
 
   redirect(next);
 }
