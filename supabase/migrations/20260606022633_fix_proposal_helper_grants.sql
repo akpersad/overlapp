@@ -1,0 +1,21 @@
+-- ============================================================================
+-- Migration: fix_proposal_helper_grants
+-- Fix: proposal_group_id(uuid) and can_manage_proposal(uuid) were revoked from
+-- PUBLIC in create_proposals but never explicitly granted to `authenticated`.
+-- Both are referenced inside RLS policies (proposal_options / proposal_responses
+-- select+write use proposal_group_id; option write + the nudge action use
+-- can_manage_proposal), so the authenticated role must hold EXECUTE.
+--
+-- Locally, Supabase's default privileges grant EXECUTE to authenticated directly,
+-- so the revoke-from-public left it intact and everything worked. The hosted
+-- project has no such default, so authenticated only ever held EXECUTE via PUBLIC
+-- — which the revoke stripped, leaving the functions postgres-only. Result on
+-- production: "permission denied for function proposal_group_id" when saving a
+-- proposal response, and a 403 on suggest_proposal_rsvps (its SECURITY INVOKER
+-- read of proposal_options trips the same policy). Same local/prod parity class
+-- as the service_role table grants (see service-role-grants.test.ts).
+--
+-- Idempotent: re-granting an existing privilege is a no-op.
+-- ============================================================================
+grant execute on function public.proposal_group_id(uuid)   to authenticated;
+grant execute on function public.can_manage_proposal(uuid) to authenticated;
