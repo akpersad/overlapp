@@ -79,20 +79,21 @@ export function HangoutForm({ groupId }: { groupId: string }) {
         <input id="hangout_desc" name="description" className={input} />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="hangout_date" className={label}>
-            Starting
-          </label>
-          <input
-            id="hangout_date"
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className={input}
-          />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="hangout_date" className={label}>
+          Starting
+        </label>
+        <input
+          id="hangout_date"
+          type="date"
+          required
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className={input}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="hangout_start" className={label}>
             From

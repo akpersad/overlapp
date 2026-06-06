@@ -142,8 +142,11 @@ export default async function CalendarsPage({
         {hasCalendars && (
           <ul className="mb-4 flex flex-col divide-y divide-border">
             {calendars!.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
+              <li
+                key={c.id}
+                className="flex flex-col gap-2.5 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
+              >
+                <div className="min-w-0 sm:flex-1">
                   <p className="truncate text-sm font-medium text-ink">
                     {c.display_name ??
                       c.provider_account ??
@@ -165,34 +168,36 @@ export default async function CalendarsPage({
                     )}
                   </p>
                 </div>
-                <form action={setCalendarWriteback}>
-                  <input type="hidden" name="calendar_id" value={c.id} />
-                  <input
-                    type="hidden"
-                    name="enabled"
-                    value={c.writeback_enabled ? "false" : "true"}
-                  />
-                  <button
-                    className={`!py-1 !text-xs ${
-                      c.writeback_enabled ? btnPrimary : btnSecondary
-                    }`}
-                    title="Push locked proposal events to this calendar"
-                  >
-                    {c.writeback_enabled ? "Write-back on" : "Write-back off"}
-                  </button>
-                </form>
-                <form action={syncNow}>
-                  <input type="hidden" name="calendar_id" value={c.id} />
-                  <button className={`${btnSecondary} !py-1 !text-xs`}>
-                    Sync now
-                  </button>
-                </form>
-                <form action={disconnectCalendar}>
-                  <input type="hidden" name="calendar_id" value={c.id} />
-                  <button className="text-xs text-red-600 hover:underline">
-                    Disconnect
-                  </button>
-                </form>
+                <div className="flex flex-wrap items-center gap-2">
+                  <form action={setCalendarWriteback}>
+                    <input type="hidden" name="calendar_id" value={c.id} />
+                    <input
+                      type="hidden"
+                      name="enabled"
+                      value={c.writeback_enabled ? "false" : "true"}
+                    />
+                    <button
+                      className={`!py-1 !text-xs ${
+                        c.writeback_enabled ? btnPrimary : btnSecondary
+                      }`}
+                      title="Push locked proposal events to this calendar"
+                    >
+                      {c.writeback_enabled ? "Write-back on" : "Write-back off"}
+                    </button>
+                  </form>
+                  <form action={syncNow}>
+                    <input type="hidden" name="calendar_id" value={c.id} />
+                    <button className={`${btnSecondary} !py-1 !text-xs`}>
+                      Sync now
+                    </button>
+                  </form>
+                  <form action={disconnectCalendar}>
+                    <input type="hidden" name="calendar_id" value={c.id} />
+                    <button className="px-1 text-xs text-red-600 hover:underline">
+                      Disconnect
+                    </button>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>
