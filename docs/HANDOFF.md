@@ -3,6 +3,53 @@
 > Created 2026-06-03. Purpose: let a fresh Claude Code session resume exactly where the
 > previous one left off. Read this first, then `CLAUDE.md` → `docs/SPEC.md` → `docs/DATA-MODEL.md`.
 
+## 2026-06-06 — analytics + error tracking (branch `analytics-and-error-handling`)
+
+Added product analytics + error tracking, chosen so a **Claude Code session can query the data
+directly via MCP** for a hands-off weekly "how's usage / what's broken?" loop (the user's explicit
+goal). Two free-tier providers: **PostHog** (product analytics) + **Sentry** (errors). Full setup +
+the weekly prompt live in [`docs/ANALYTICS.md`](ANALYTICS.md).
+
+- **Graceful no-op when unconfigured** — same pattern as Google/MS/VAPID: absent keys → both
+  providers silently disabled. Build + the whole test suite ran with **no keys set** and stayed
+  green, so dev/CI/e2e are untouched. Guards: `posthogConfigured()`/`sentryConfigured()` in
+  `src/lib/analytics/config.ts`.
+- **Files (all new unless noted):** `src/lib/analytics/{config,events,server}.ts` (env+guards · the
+  canonical 10-event vocabulary · server-side `track()`+`reportError()`),
+  `src/instrumentation-client.ts` (browser PostHog + Sentry init; **manual** `$pageview` on
+  `onRouterTransitionStart`; `autocapture`+session-replay OFF), `src/instrumentation.ts` (server
+  Sentry init via `register()` + `onRequestError`), `src/components/AnalyticsIdentify.tsx` (id-only
+  identify, mounted in the `(app)` layout). Edited: the two error boundaries (`error.tsx`,
+  `global-error.tsx`) now `Sentry.captureException`.
+- **10 funnel events** emitted server-side from the core-loop actions (before any `redirect()`):
+  `signed_up`(`via_invite`)/`signed_in`/`onboarding_completed` · `group_created`/`invite_created`/
+  `invite_redeemed` · `block_added`/`calendar_connect_started`(`provider`) ·
+  `proposal_created`/`proposal_locked`. See `src/lib/analytics/events.ts`.
+- **Privacy = the product's free/busy-only line:** id-only PostHog persons (no name/email),
+  `sendDefaultPii:false` on Sentry, no DOM autocapture, no session replay → group names / event
+  titles / availability are never captured. Only event names + low-cardinality props.
+- **No `withSentryConfig` / Sentry bundler plugin** — the project builds with **Turbopack** (the
+  plugin targets webpack) and a hobby setup doesn't need source-map upload. Runtime capture only.
+- **MCP:** `.mcp.json` now declares `posthog` (`mcp.posthog.com/mcp`) + `sentry`
+  (`mcp.sentry.dev/mcp`), both **OAuth — no secrets in the repo**. They show disconnected until the
+  user approves them (interactive OAuth) on first use.
+- **No migration** — pure app-layer. Deps added: `posthog-js`, `posthog-node`, `@sentry/nextjs`.
+  **Gate:** `tsc`/`eslint`/`next build`/**146 unit+integration** green. (e2e not re-run — no
+  behaviour change when keys absent, which is how e2e runs.)
+- **Owner setup — DONE (2026-06-06).** Both accounts created and connected end-to-end:
+  - PostHog: project **457176** "Default project" (US). `NEXT_PUBLIC_POSTHOG_KEY` (`phc_oex77…`) +
+    `NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com` set in `.env.local`; MCP approved. Verified by
+    capturing a live test event (`overlapp_mcp_setup_check`) and reading it back via MCP HogQL. The
+    key matches the project's `api_token` exactly.
+  - Sentry: org **`personal-qbk`**, project **`overlapp`** (US). `NEXT_PUBLIC_SENTRY_DSN` (+
+    `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.1`) set in `.env.local`; MCP approved. Verified by sending
+    a live test exception that surfaced as issue **`OVERLAPP-1`** (read back via MCP, then resolved).
+    The DSN matches the project's Default DSN exactly.
+  - **Still pending (owner/deploy):** set the same `NEXT_PUBLIC_*` vars (+ `NEXT_PUBLIC_ANALYTICS_ENV=production`)
+    on the deploy; and do a first run/deploy to confirm the app's own instrumentation fires real data
+    (the test events prove credentials + transport, not the in-app `$pageview`/funnel/error wiring).
+  - Branch `analytics-and-error-handling` is uncommitted (changes in the working tree).
+
 ## 2026-06-06 — auth-recovery + error boundaries (branch `session/pending-items`)
 
 Built the three remaining **in-app functional gaps** from `PRE-LAUNCH.md` (the only code items

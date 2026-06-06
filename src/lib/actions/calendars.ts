@@ -13,14 +13,17 @@ import {
   MS_OAUTH_STATE_COOKIE,
 } from "@/lib/microsoft/oauth";
 import { syncCalendar } from "@/lib/calendar/sync";
+import { track } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 // Kick off the Google calendar OAuth flow. Sets a CSRF state cookie and sends
 // the user to Google's consent screen. The callback route finishes the connect.
 export async function connectGoogle(): Promise<void> {
-  await requireUser("/calendars");
+  const user = await requireUser("/calendars");
   if (!googleConfigured()) {
     redirect("/calendars?error=not_configured");
   }
+  await track(EVENTS.CALENDAR_CONNECT_STARTED, user.id, { provider: "google" });
 
   const state = crypto.randomUUID();
   const jar = await cookies();
@@ -38,10 +41,11 @@ export async function connectGoogle(): Promise<void> {
 // Kick off the Microsoft (Outlook) calendar OAuth flow — the Google twin. Sets a
 // CSRF state cookie and sends the user to Microsoft's consent screen.
 export async function connectMicrosoft(): Promise<void> {
-  await requireUser("/calendars");
+  const user = await requireUser("/calendars");
   if (!microsoftConfigured()) {
     redirect("/calendars?error=not_configured");
   }
+  await track(EVENTS.CALENDAR_CONNECT_STARTED, user.id, { provider: "microsoft" });
 
   const state = crypto.randomUUID();
   const jar = await cookies();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 import "./globals.css";
 import { btnPrimary } from "@/lib/ui";
@@ -18,6 +19,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (

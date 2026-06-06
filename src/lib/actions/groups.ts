@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { track } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 import type { Database } from "@/lib/supabase/database.types";
 
 type JoinControl = Database["public"]["Enums"]["join_control"];
@@ -51,6 +53,10 @@ export async function createGroup(
     .single();
 
   if (error) return { error: error.message };
+  await track(EVENTS.GROUP_CREATED, user.id, {
+    slot_minutes: slotMinutes,
+    join_policy: joinPolicy === "approval" ? "approval" : "open",
+  });
   redirect(`/groups/${data.id}`);
 }
 
@@ -184,6 +190,7 @@ export async function createInvite(formData: FormData): Promise<void> {
     .from("group_invites")
     .insert({ group_id: id, token, created_by: user.id });
   if (error) throw new Error(error.message);
+  await track(EVENTS.INVITE_CREATED, user.id, { group_id: id });
   revalidatePath(`/groups/${id}`);
 }
 
@@ -222,7 +229,7 @@ export async function invitePendingEmail(
 }
 
 export async function redeemInvite(token: string): Promise<{ groupId: string }> {
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("redeem_group_invite", {
     p_token: token,
@@ -230,5 +237,6 @@ export async function redeemInvite(token: string): Promise<{ groupId: string }> 
   if (error) throw new Error(error.message);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) throw new Error("Invite is invalid or expired.");
+  await track(EVENTS.INVITE_REDEEMED, user.id, { group_id: row.group_id });
   return { groupId: row.group_id };
 }

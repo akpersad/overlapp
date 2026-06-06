@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { track } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export type ActionState = { error: string } | undefined;
 
@@ -35,6 +37,7 @@ export async function addBlock(
   });
 
   if (error) return { error: error.message };
+  await track(EVENTS.BLOCK_ADDED, user.id, { recurring: Boolean(rrule) });
   revalidatePath("/availability");
   return undefined;
 }

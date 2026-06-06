@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { track } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export type ActionState = { error: string; ok?: false } | { ok: true } | undefined;
 
@@ -50,6 +52,8 @@ export async function finishOnboarding(
 ): Promise<ActionState> {
   const result = await updateProfile(undefined, formData);
   if (result && "error" in result) return result;
+  const user = await requireUser();
+  await track(EVENTS.ONBOARDING_COMPLETED, user.id);
   redirect("/dashboard");
 }
 

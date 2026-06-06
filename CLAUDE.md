@@ -229,6 +229,27 @@ new anon-callable `register_invite_signup` adds the expected anon + authenticate
 `security_definer_function_executable` WARNs — same accepted pattern as `get_invite_preview`). e2e
 deferred to the next session.
 
+**Analytics + error tracking added (2026-06-06).** Two free-tier providers wired with a graceful
+no-op fallback (absent keys → silent, like Google/MS/VAPID): **PostHog** (product analytics) +
+**Sentry** (errors), both chosen because Claude can query them directly via their **MCP servers**
+(declared in `.mcp.json`: `posthog`, `sentry`) for a hands-off weekly analysis loop. New:
+`src/lib/analytics/{config,events,server}.ts`, `src/instrumentation-client.ts` (browser PostHog +
+Sentry init, manual pageviews — `autocapture`/replay OFF for the free/busy-only privacy line),
+`src/instrumentation.ts` (server Sentry init + `onRequestError`), `AnalyticsIdentify` in the `(app)`
+layout (id-only, no PII). 10 funnel events emitted server-side from the core-loop actions
+(signed_up → onboarding → group/invite → block/calendar → proposal create/lock); Sentry capture in
+both error boundaries. **No Turbopack/`withSentryConfig`** (runtime capture only — no source-map
+upload needed). Setup + the weekly prompt: [`docs/ANALYTICS.md`](docs/ANALYTICS.md). `tsc`/`eslint`/
+`next build`/**146 unit+integration** green (build + tests ran with no keys → no-op path verified).
+**Owner setup DONE (2026-06-06):** PostHog + Sentry accounts created; the `NEXT_PUBLIC_*` keys are
+in `.env.local` (PostHog project 457176 "Default project", US; Sentry `personal-qbk/overlapp`, US);
+both MCP servers approved + connected. **Verified end-to-end** — a live test event was ingested into
+each and read back via MCP (PostHog event `overlapp_mcp_setup_check`; Sentry issue `OVERLAPP-1`, since
+resolved). The keys + DSN match their projects exactly. Still pending: (1) the same `NEXT_PUBLIC_*`
+vars (+ `NEXT_PUBLIC_ANALYTICS_ENV=production`) on the deploy; (2) a first run/deploy to confirm the
+in-app instrumentation fires real data (the test events only prove the credential + transport, not the
+app's own `$pageview`/funnel/error wiring). The weekly analysis loop is ready — see `docs/ANALYTICS.md`.
+
 **Next:** owner-driven pre-launch work (OAuth verification, deploy, confirm the `CONTACT_EMAIL`
 mailbox) in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
 [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md). Verify the live push round-trip against a production

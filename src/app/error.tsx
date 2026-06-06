@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 import { AuthCard } from "@/components/AuthCard";
 import { btnPrimary, btnSecondary } from "@/lib/ui";
@@ -18,9 +19,10 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Surface for server logs / future error reporting; details are never shown
-    // to the user (only the opaque digest, if any).
+    // Surface for server logs and report to Sentry (no-op if unconfigured);
+    // details are never shown to the user (only the opaque digest, if any).
     console.error(error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (

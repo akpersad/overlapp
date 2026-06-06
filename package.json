@@ -17,9 +17,12 @@
     "db:reset": "supabase db reset"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.56.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
     "next": "16.2.7",
+    "posthog-js": "^1.381.0",
+    "posthog-node": "^5.21.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "web-push": "^3.6.7"

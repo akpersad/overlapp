@@ -1,4 +1,5 @@
 import { AppNav } from "@/components/AppNav";
+import { AnalyticsIdentify } from "@/components/AnalyticsIdentify";
 import { requireProfile } from "@/lib/auth";
 
 // Shared shell for all authenticated app pages. requireProfile() redirects to
@@ -12,6 +13,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-dvh bg-bg">
+      <AnalyticsIdentify userId={profile.id} />
       <AppNav profile={profile} />
       {/* pb clears the fixed mobile bottom-nav (+ iOS safe area); normal on sm+. */}
       <main className="mx-auto max-w-3xl px-4 pt-6 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-6">

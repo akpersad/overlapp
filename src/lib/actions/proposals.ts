@@ -7,6 +7,8 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/notifications";
 import { writeBackProposal } from "@/lib/calendar/sync";
+import { track } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 export type ActionState = { error: string } | undefined;
 
@@ -80,6 +82,11 @@ export async function createProposal(
     proposalId: proposalId as string,
   });
 
+  await track(EVENTS.PROPOSAL_CREATED, user.id, {
+    group_id: groupId,
+    option_count: options.length,
+  });
+
   redirect(`/groups/${groupId}/proposals/${proposalId}`);
 }
 
@@ -124,7 +131,7 @@ export async function respondProposal(formData: FormData): Promise<void> {
 // opted-in member's real calendar (best-effort).
 // ---------------------------------------------------------------------------
 export async function lockProposal(formData: FormData): Promise<void> {
-  await requireUser();
+  const user = await requireUser();
   const proposalId = String(formData.get("proposal_id") ?? "");
   const optionId = String(formData.get("option_id") ?? "");
   const groupId = String(formData.get("group_id") ?? "");
@@ -136,6 +143,8 @@ export async function lockProposal(formData: FormData): Promise<void> {
     p_option_id: optionId,
   });
   if (error) throw new Error(error.message);
+
+  await track(EVENTS.PROPOSAL_LOCKED, user.id, { group_id: groupId });
 
   const { data: proposal } = await supabase
     .from("proposals")
