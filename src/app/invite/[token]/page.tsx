@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -6,6 +7,46 @@ import { getUser } from "@/lib/auth";
 import { redeemInvite } from "@/lib/actions/groups";
 import { createClient } from "@/lib/supabase/server";
 import { btnPrimary, btnSecondary } from "@/lib/ui";
+
+// Link-preview card for the invite. This is what turns a bare URL pasted into
+// iMessage/WhatsApp/Slack into a contextual card with the inviter + group name.
+// Uses only the anon-callable preview RPC — never leaks the roster (spec §Access).
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("get_invite_preview", { p_token: token });
+  const preview = Array.isArray(data) ? data[0] : data;
+
+  if (!preview) {
+    return {
+      title: "Join a group on Overlapp",
+      description: "This invite link is invalid, expired, or has been revoked.",
+    };
+  }
+
+  const title = `${preview.inviter_name} invited you to “${preview.group_name}”`;
+  const description =
+    "Join on Overlapp — a shared group calendar that shows when everyone's free. " +
+    "No more “let me check my calendar.”";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      type: "website",
+      siteName: "Overlapp",
+      title,
+      description,
+      url: `/invite/${token}`,
+      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: title }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: ["/og-image.png"] },
+  };
+}
 
 export default async function InvitePage({
   params,

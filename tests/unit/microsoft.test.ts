@@ -8,8 +8,11 @@ import {
 import { mapMicrosoftEvent, type GraphEvent } from "@/lib/microsoft/calendar";
 
 describe("microsoft oauth url", () => {
-  it("reports configured when client id + secret are present", () => {
-    expect(microsoftConfigured()).toBe(true);
+  it("stays unconfigured even with creds present — Microsoft is shelved from the MVP", () => {
+    // MICROSOFT_CLIENT_ID/SECRET are set in the test env, but the MVP launch flag
+    // (MICROSOFT_MVP_ENABLED) hard-hides the whole connect surface regardless, so
+    // the button / action / callback all stay dormant for launch.
+    expect(microsoftConfigured()).toBe(false);
   });
 
   it("derives the redirect URI from the site URL", () => {

@@ -58,6 +58,40 @@
   under Project → Settings → Cron Jobs after deploy.
 - Custom domain + HTTPS (Vercel provides certs free).
 
+### Swap localhost → the deployed URL (every third-party entry point)
+
+Everything below is currently wired to `http://localhost:3000` for local dev. Once
+the deployment URL is live, add the production origin (use the final **custom
+domain** if you have one — otherwise the `*.vercel.app` URL, and redo this when the
+custom domain lands) in **each** place. Keep the localhost entries alongside the
+production ones so local dev keeps working. No trailing slash anywhere.
+
+1. **Vercel env → `NEXT_PUBLIC_SITE_URL`** = `https://YOUR_DOMAIN`. This single var
+   drives the OAuth `redirect_uri` builders (`src/lib/google/oauth.ts`,
+   `src/lib/microsoft/oauth.ts`) **and** the link-preview `metadataBase` / `og:image`
+   absolute URLs (`src/app/layout.tsx`). If it's wrong, calendar connect breaks and
+   shared-invite cards show broken images.
+2. **Google Cloud → OAuth client** → *Authorized redirect URIs* → add
+   `https://YOUR_DOMAIN/api/calendars/google/callback`; *Authorized JavaScript
+   origins* → add `https://YOUR_DOMAIN`.
+3. **Microsoft Entra → app registration → Authentication** → *Redirect URIs* → add
+   `https://YOUR_DOMAIN/api/calendars/microsoft/callback`. (Only if Microsoft
+   Calendar is enabled — see `MICROSOFT-SETUP.md`.)
+4. **Supabase → Authentication → URL Configuration** (the easy one to forget — and
+   the most damaging):
+   - **Site URL** = `https://YOUR_DOMAIN`. Supabase builds the confirmation / reset
+     / magic-link email URLs (`{{ .ConfirmationURL }}`) from this. Left at
+     localhost, **every production auth email points to localhost and is unusable.**
+   - **Redirect URLs** allow-list → add `https://YOUR_DOMAIN/**` so post-auth
+     destinations resolve: `/auth/confirm`, the `/invite/<token>` redirect, and the
+     `redirectTo` carried through signup/login.
+5. **Email templates / Resend** — no URL to edit (templates use the Site URL above);
+   just re-send yourself a confirmation on prod and click it end-to-end.
+
+Smoke test after the swap: connect Google Calendar on prod, sign up a throwaway
+account from an invite link and confirm the email link lands back in the app, and
+paste an invite link into iMessage to confirm the preview card renders.
+
 ## Email deliverability (Resend free tier)
 
 - Land the **DMARC** record for the sending domain (was in progress — verify it's
@@ -70,10 +104,42 @@
 - Review `get_advisors` (security + performance) once more; confirm only the
   intentional items (`security_definer` WARNs, `calendar_secrets`
   RLS-no-policy INFO).
+- **Enable leaked-password protection** (Supabase → Auth → Policies) — the
+  standing `auth_leaked_password_protection` advisor WARN. One toggle.
 - Decide on MCP write-mode against prod once real users exist (consider switching
   to read-only, or a separate project/branch). See `HANDOFF.md` open reminders.
 - (Post-launch hardening, tracked separately: encrypt OAuth tokens at rest with
   Vault — `POST-LAUNCH.md`.)
+
+## In-app functional gaps to build (code — deferred to a fresh branch)
+
+> Identified 2026-06-06 reviewing launch readiness (the e2e expansion surfaced the
+> auth-recovery edges). These are missing **application code**, distinct from the
+> config/process items above. The core loop is solid + e2e-covered; these are edges.
+> Build order: password reset first (the only true blocker). Each should get e2e coverage.
+
+- **Password reset / "forgot password" — blocker.** `src/lib/auth.ts` has only
+  `signUp`/`signIn`/`signOut`; a user who forgets their password is permanently
+  locked out. Add: a public **`/forgot-password`** page (email field →
+  `supabase.auth.resetPasswordForEmail(email, { redirectTo })`) and a
+  **`/reset-password`** page that, once the recovery link lands (handled like the
+  existing `src/app/auth/confirm/route.ts`, `type=recovery`), calls
+  `supabase.auth.updateUser({ password })`. Add both to the proxy `PUBLIC_PATHS`;
+  link "Forgot password?" from `/login`. Mirror the existing auth Server-Action +
+  form-state pattern. Needs the Supabase **recovery email template** (Resend) and a
+  redirect-allowlist entry. e2e can drive the request + reset pages; the emailed
+  link itself is a manual check (like verify-email).
+
+- **Branded error + not-found boundaries.** No `error.tsx` / `global-error.tsx` /
+  `not-found.tsx` exist under `src/app`, so prod shows Next's unstyled default on a
+  thrown server action or a bad/stale URL (revoked invite, deleted/bookmarked
+  group). Add a root **`not-found.tsx`** + **`error.tsx`** (and a `global-error.tsx`
+  fallback), styled with the Phase-7 tokens (reuse `AuthCard` / `src/lib/ui.ts`).
+
+- **Resend-verification affordance.** `/verify-email` is a dead end if the email is
+  missed or expires. Add a "Resend email" action
+  (`supabase.auth.resend({ type: 'signup', email })`) — pass the email through from
+  signup or re-enter it. Pairs with password reset as the auth-recovery set.
 
 ## Known correctness issues to resolve
 
@@ -115,3 +181,11 @@
   → invite → connect Google Calendar → heatmap reflects real busy time → delete
   account.
 - Sanity-check the legal pages render and are linked.
+- **Run the manual-only checks** the e2e suite can't cover (live Google/Microsoft
+  OAuth round-trip, Web Push delivery on an installed PWA, realtime heatmap
+  delivery): see `docs/TESTING.md` → **Manual pre-launch checks**.
+- **App icon + favicon** ✅ on-brand (2026-06-05): the honey×pine "overlap" mark
+  (`public/icons/*` via `scripts/generate-icons.mjs`, plus `src/app/favicon.ico` +
+  `public/icon.svg`); `manifest.ts` `theme_color`/`background_color` are the honey/
+  cream brand. Confirm the tab favicon + installed-PWA icon look right on the
+  deployed domain.

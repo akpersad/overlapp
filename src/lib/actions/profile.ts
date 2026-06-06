@@ -76,16 +76,23 @@ export async function uploadAvatar(
     return { error: "Image must be 2 MB or smaller." };
   }
 
-  const supabase = await createClient();
+  // Storage writes go through the service-role client: this is a trusted
+  // server action (requireUser above) and the path is hard-scoped to the
+  // caller's own uid folder, so we enforce ownership in code rather than rely
+  // on the SSR client attaching the user JWT to the upload (it doesn't —
+  // storage uploads were arriving unauthenticated and tripping the bucket's
+  // owner-folder RLS). Same pattern the calendar + account-deletion paths use.
+  const admin = createAdminClient();
   const path = `${user.id}/avatar`;
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await admin.storage
     .from("avatars")
     .upload(path, file, { contentType: file.type, upsert: true });
   if (uploadError) return { error: uploadError.message };
 
-  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  const { data } = admin.storage.from("avatars").getPublicUrl(path);
   const url = `${data.publicUrl}?v=${Date.now()}`;
 
+  const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
     .update({ avatar_url: url })
@@ -99,8 +106,9 @@ export async function uploadAvatar(
 // Clears the avatar (falls back to the initials avatar) and removes the object.
 export async function removeAvatar(): Promise<void> {
   const user = await requireUser();
+  // Service-role for the storage delete (see uploadAvatar) — own-folder path.
+  await createAdminClient().storage.from("avatars").remove([`${user.id}/avatar`]);
   const supabase = await createClient();
-  await supabase.storage.from("avatars").remove([`${user.id}/avatar`]);
   await supabase.from("profiles").update({ avatar_url: null }).eq("id", user.id);
   revalidatePath("/profile");
 }

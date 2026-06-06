@@ -3,6 +3,35 @@
 > Created 2026-06-03. Purpose: let a fresh Claude Code session resume exactly where the
 > previous one left off. Read this first, then `CLAUDE.md` → `docs/SPEC.md` → `docs/DATA-MODEL.md`.
 
+## 2026-06-05 — e2e suite expansion + brand icons (branch `fix/pre-launch-functional`)
+
+Pre-launch hardening of the test gate + icon polish:
+- **e2e now covers the whole app, not just the Phase-1 loop.** Added 8 specs alongside
+  `core-loop.spec.ts` (`auth`, `invite-redeem`, `proposals`, `group-management`, `profile`,
+  `notifications`, `recurring-hangouts`, `legal-public`) + shared `tests/e2e/_helpers.ts`
+  (service-role seeding, `signUpNewUser`, `loginViaUI`, `createGroupViaUI`). **16 e2e tests
+  green.** Coverage table + the **Manual pre-launch checks** (OAuth round-trip, Web Push,
+  realtime delivery — can't be automated) are in `docs/TESTING.md`.
+- **Fixed e2e brittleness:** `playwright.config.ts` now blanks `GOOGLE_*`/`MICROSOFT_*` (so the
+  Calendars "not configured" notice is deterministic regardless of `.env.local`) and pins the
+  **local** `SUPABASE_SERVICE_ROLE_KEY` (the admin client — avatar upload + account deletion —
+  would otherwise use the hosted key against the local URL and fail). Two latent bugs the
+  expansion surfaced: the invite preview's loose `getByText(group name)` now also matched the new
+  invite `<title>` metadata (scoped to the heading), and a save-then-navigate race in a settings
+  edit (wait for the action POST before navigating).
+- **Brand icon + favicon (the "do we have a dedicated icon/favicon?" gap).** The PWA icons were
+  the old indigo `#4f46e5` mark and `favicon.ico` was still Next's default. `scripts/generate-icons.mjs`
+  now renders the honey×deep-pine "overlap" mark on cream (matching `generate-og-image.mjs`) and
+  also emits a brand `src/app/favicon.ico` (16/32/48) + `public/icon.svg`; `manifest.ts`
+  `theme_color`/`background_color` updated to honey/cream. Re-run with `node scripts/generate-icons.mjs`.
+- **Microsoft Calendar hard-hidden for MVP.** It was actually *merged* into this branch (button +
+  action + callback), not just parked on a branch, and `.env.local` had `MICROSOFT_*` set — so it
+  was a live surface. Added a constant `MICROSOFT_MVP_ENABLED = false` in `src/lib/microsoft/oauth.ts`
+  so `microsoftConfigured()` returns false **regardless of env**; the button/action/callback all gate
+  on it, so the whole path is dormant. Re-enable post-launch by flipping the flag. Unit test pins it
+  (`microsoft.test.ts`: "stays unconfigured even with creds present").
+- **Gate:** 16 e2e + 56 unit + 90 integration green; `tsc`/`eslint`/`next build` clean.
+
 ## TL;DR — where we are
 
 **Phase 7 (visual design) is COMPLETE and verified (2026-06-05).** Branch
@@ -125,6 +154,51 @@ north star (a week grid suits one-off polls; the month suits a calendar that liv
   core-loop green (run with `GOOGLE_/MICROSOFT_CLIENT_ID/SECRET=""`, since `next dev` reloads
   `.env.local` — setting them empty keeps the calendars page in its "not configured" state for e2e);
   month view screenshot-reviewed (375px). The "1" in a slot cell = the count of members free.
+
+**Onboarding / invite-share polish (2026-06-05).** Same branch `fix/pre-launch-functional`. Five
+related fixes around the "invite → sign up → install → notify" first-run path:
+- **Invite share message + link-preview card.** The Web Share payload (`groups/[id]/invite-panel.tsx`)
+  was a bare `Join "X" on Overlapp` with no link preview. Now it's personalized + contextual
+  (passes the sharer's first name down from the group page), and — the real fix for "ugly link with
+  zero context" — `/invite/[token]` gained `generateMetadata` producing a real Open Graph / Twitter
+  card (inviter + group name), plus a default OG block + `metadataBase` on the root layout. So a link
+  pasted into iMessage/WhatsApp renders a hero card, not a naked URL.
+- **OG banner.** `scripts/generate-og-image.mjs` (committed, dependency-light — uses `sharp`, already
+  present via Next) renders `public/og-image.png` (1200×630): the brand Venn mark (honey + pine,
+  deep-pine `--av-5` overlap = the "signal") + wordmark + tagline, on cream. Wired into the default +
+  invite cards as `summary_large_image`. Re-run the script if the palette changes.
+- **Avatar upload was failing with "new row violates row-level security policy."** Root cause: the
+  `@supabase/ssr` server client wasn't attaching the user's session to the **storage** request
+  specifically (it arrived as `anon`), even though DB writes on the same client authenticate fine
+  (confirmed: the affected user owns a group on hosted; the owner-folder bucket policy itself passes
+  for an authenticated own-folder upload). Fix: `uploadAvatar`/`removeAvatar` (`lib/actions/profile.ts`)
+  now do the storage op through the **service-role** admin client (same pattern as calendar sync +
+  account deletion), with the action still hard-scoping the path to `${user.id}/avatar`. Verified
+  end-to-end against hosted (upload → public 200 → cleanup). The owner-scoped bucket RLS stays as
+  defense-in-depth. **Note:** avatar upload now requires `SUPABASE_SERVICE_ROLE_KEY` in the
+  environment (already required by deletion/sync, already in `.env.local` + the deploy env list).
+- **Share-link invitees were not auto-joined after email confirmation.** Email-keyed `pending_invites`
+  are consumed by the `handle_new_user` signup trigger, but a share-link token was only redeemed by
+  returning to `/invite/<token>` after signup — and the prod email-confirmation redirect drops that
+  destination, so the invitee landed on the dashboard never joined. New SECURITY DEFINER RPC
+  **`register_invite_signup(token, email)`** (migration `20260606030000_share_link_invite_signup_bridge`,
+  applied to local **and** hosted; types hand-added to `database.types.ts`) records a `pending_invite`
+  from a valid token; the `signUp` action calls it (anon client) **before** `auth.signUp`, so the
+  existing, already-tested trigger auto-joins them — no email-template or `/auth/confirm` changes.
+  Anon-callable is safe (the caller already holds a valid share token). Verified against hosted as the
+  `anon` role: valid token → normalized pending row; bogus token → silent no-op.
+- **PWA install hand-holding.** `InstallPrompt.tsx` (shown on onboarding when not yet installed) went
+  from a one-line hint to numbered, platform-specific steps with the actual iOS **Share** /
+  **Add to Home Screen** glyphs (inline SVG) + a "use Safari" note (only Safari can install on iPhone).
+  In-card, still skippable — guided, not a blocker.
+- **Docs:** `PRE-LAUNCH.md` gained a consolidated **"Swap localhost → the deployed URL"** section
+  covering every third-party accepted entry point (`NEXT_PUBLIC_SITE_URL`, Google + Microsoft redirect
+  URIs, and the easy-to-miss **Supabase Auth Site URL + redirect allow-list** — prod auth emails are
+  built from the Site URL).
+- **Verified:** `tsc`/`eslint`/`next build` green; **146 unit+integration** green (no new automated
+  tests added this session — the new RPC + avatar path were verified manually against hosted; adding
+  regression tests is a good follow-up for the next e2e session). **Playwright e2e was NOT run this
+  session** (deferred — the next session will do the full e2e/live-round-trip pass).
 
 ---
 
@@ -490,10 +564,15 @@ add a new one.
 - **Auth:** email+password is built. Google OAuth login is still optional/later (doubles as
   calendar consent in P2). Local Supabase has `enable_confirmations = false` (signups auto-confirm,
   which is what e2e relies on); **prod will confirm by email** — the `/auth/confirm` route + the
-  `verify-email` page handle that path, and Resend prod email depends on DMARC landing.
-- **Account deletion UI** and **avatar upload** are now **built** (this session). Deletion
-  dissolves owned groups + deletes the auth user via the service role (profile page → Danger zone);
-  avatar upload uses the public `avatars` storage bucket with owner-scoped RLS.
+  `verify-email` page handle that path, and Resend prod email depends on DMARC landing. Share-link
+  invitees survive that email-confirmation redirect via the `register_invite_signup` bridge (the
+  `signUp` action records a `pending_invite` before `auth.signUp`, so the `handle_new_user` trigger
+  auto-joins them — see the 2026-06-05 onboarding-polish entry above).
+- **Account deletion UI** and **avatar upload** are now **built**. Deletion dissolves owned groups +
+  deletes the auth user via the service role (profile page → Danger zone). Avatar upload uses the
+  public `avatars` bucket but does the storage write via the **service-role** admin client (the SSR
+  client wasn't authenticating storage requests; own-folder path enforced in the action) — owner-scoped
+  bucket RLS remains as defense-in-depth. Requires `SUPABASE_SERVICE_ROLE_KEY`.
 - **PWA** (installable manifest, service worker, Web Push) is **Phase 4**, not done.
 - **MCP write mode is enabled against the PRODUCTION DB** (convenience + prompt-injection risk).
   No real user data yet, but treat every MCP `apply_migration`/`execute_sql` as a production change:

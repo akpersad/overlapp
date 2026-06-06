@@ -1,10 +1,13 @@
 // Dependency-free PWA icon generator. Produces the app's "overlap" mark — a
-// two-circle Venn diagram on the indigo accent — as PNGs, using only Node core
-// (zlib for the IDAT deflate, a hand-rolled CRC32 for the chunk checksums).
+// two-circle Venn diagram in the Phase-7 "Bright & Friendly" brand (honey ×
+// deep-pine on cream, matching scripts/generate-og-image.mjs) — as PNGs, using
+// only Node core (zlib for the IDAT deflate, a hand-rolled CRC32 for the chunk
+// checksums).
 //
 // Run with `node scripts/generate-icons.mjs`. Outputs to public/icons/. The
-// mark is the brand: two overlapping circles, the intersection brighter — which
-// is exactly what Overlapp computes. Re-run if the palette changes.
+// mark is the brand: a honey circle and a pine circle overlapping, the
+// intersection rendered in the deepest pine — exactly the "everyone free"
+// signal Overlapp computes. Re-run if the palette changes.
 
 import { deflateSync } from "node:zlib";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -15,12 +18,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, "..", "public", "icons");
 mkdirSync(OUT, { recursive: true });
 
-// --- palette (indigo-600 background, white circles) ---------------------------
-const BG = [79, 70, 229]; // #4f46e5 indigo-600
-
-function blend(base, top, alpha) {
-  return base.map((b, i) => Math.round(b * (1 - alpha) + top[i] * alpha));
-}
+// --- palette ("Bright & Friendly", mirrors generate-og-image.mjs) -------------
+const BG = [250, 247, 240]; // #faf7f0 cream ground
+const HONEY = [239, 169, 74]; // #efa94a brand (left circle)
+const PINE_MID = [45, 132, 96]; // #2d8460 availability (right circle)
+const PINE_DEEP = [26, 107, 80]; // #1a6b50 the "everyone free" signal (overlap lens)
 
 /** RGBA pixel for the Venn mark at (x, y) in a `size`×`size` image. `pad` is the
  *  fraction of the canvas kept clear around the mark (bigger for maskable). */
@@ -34,15 +36,11 @@ function pixel(x, y, size, pad, opaqueBg) {
   const cx2 = inset + usable * 0.64;
   const in1 = (x - cx1) ** 2 + (y - cy) ** 2 <= r * r;
   const in2 = (x - cx2) ** 2 + (y - cy) ** 2 <= r * r;
-  const covered = (in1 ? 1 : 0) + (in2 ? 1 : 0);
 
-  if (covered === 0) {
-    return opaqueBg ? [...BG, 255] : [0, 0, 0, 0];
-  }
-  // One circle → soft white; overlap → near-solid white (the "overlap" payoff).
-  const white = [255, 255, 255];
-  const color = covered === 2 ? blend(BG, white, 0.92) : blend(BG, white, 0.5);
-  return [...color, 255];
+  if (in1 && in2) return [...PINE_DEEP, 255]; // overlap → the signal
+  if (in1) return [...HONEY, 255]; // honey brand circle
+  if (in2) return [...PINE_MID, 255]; // pine availability circle
+  return opaqueBg ? [...BG, 255] : [0, 0, 0, 0];
 }
 
 // --- minimal PNG encoder ------------------------------------------------------
@@ -116,4 +114,67 @@ const targets = [
 for (const t of targets) {
   writeFileSync(path.join(OUT, t.name), encodePng(t.size, t.pad, t.opaque));
   console.log(`wrote public/icons/${t.name} (${t.size}×${t.size})`);
+}
+
+// --- favicon.ico (legacy + crawlers that hit /favicon.ico directly) -----------
+// An ICO is just a small directory wrapping one or more images. Modern browsers
+// accept PNG payloads inside ICO, so we reuse the PNG encoder at favicon sizes.
+function buildIco(sizes) {
+  const pngs = sizes.map((s) => encodePng(s, 0.08, true));
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0); // reserved
+  header.writeUInt16LE(1, 2); // type: 1 = icon
+  header.writeUInt16LE(sizes.length, 4); // image count
+  const dirSize = 16 * sizes.length;
+  let offset = 6 + dirSize;
+  const entries = [];
+  sizes.forEach((s, i) => {
+    const e = Buffer.alloc(16);
+    e[0] = s >= 256 ? 0 : s; // width (0 means 256)
+    e[1] = s >= 256 ? 0 : s; // height
+    e[2] = 0; // palette count
+    e[3] = 0; // reserved
+    e.writeUInt16LE(1, 4); // colour planes
+    e.writeUInt16LE(32, 6); // bits per pixel
+    e.writeUInt32LE(pngs[i].length, 8); // bytes in resource
+    e.writeUInt32LE(offset, 12); // offset of image data
+    offset += pngs[i].length;
+    entries.push(e);
+  });
+  return Buffer.concat([header, ...entries, ...pngs]);
+}
+
+// favicon.ico lives in the root app/ segment (Next's file convention serves it
+// at /favicon.ico and auto-links it in <head>). Replaces the default scaffold.
+const APP_DIR = path.join(__dirname, "..", "src", "app");
+writeFileSync(path.join(APP_DIR, "favicon.ico"), buildIco([16, 32, 48]));
+console.log("wrote src/app/favicon.ico (16/32/48)");
+
+// --- icon.svg (crisp, scalable — modern browsers prefer it for the tab) -------
+// Two overlapping circles + the intersection "lens" in the deepest pine, the
+// same geometry as the PNGs and scripts/generate-og-image.mjs.
+const hex = (rgb) => "#" + rgb.map((c) => c.toString(16).padStart(2, "0")).join("");
+{
+  const S = 64;
+  const r = S * 0.3;
+  const cy = S / 2;
+  const cx1 = S * 0.36;
+  const cx2 = S * 0.64;
+  const mid = (cx1 + cx2) / 2;
+  const off = (cx2 - cx1) / 2;
+  const half = Math.sqrt(r * r - off * off); // half-height of the lens
+  const topY = (cy - half).toFixed(2);
+  const botY = (cy + half).toFixed(2);
+  const lens =
+    `M ${mid} ${topY} A ${r} ${r} 0 0 1 ${mid} ${botY} ` +
+    `A ${r} ${r} 0 0 1 ${mid} ${topY} Z`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}">
+  <rect width="${S}" height="${S}" rx="12" fill="${hex(BG)}"/>
+  <circle cx="${cx1}" cy="${cy}" r="${r}" fill="${hex(HONEY)}"/>
+  <circle cx="${cx2}" cy="${cy}" r="${r}" fill="${hex(PINE_MID)}"/>
+  <path d="${lens}" fill="${hex(PINE_DEEP)}"/>
+</svg>
+`;
+  writeFileSync(path.join(__dirname, "..", "public", "icon.svg"), svg);
+  console.log("wrote public/icon.svg");
 }

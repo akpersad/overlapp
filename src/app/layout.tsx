@@ -19,7 +19,12 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+// Absolute base so per-page Open Graph image paths resolve to real URLs in
+// link previews (iMessage, WhatsApp, Slack…). Falls back to localhost in dev.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Overlapp",
   description:
     "A persistent shared group calendar — know when everyone's free before anyone asks.",
@@ -30,9 +35,37 @@ export const metadata: Metadata = {
     title: "Overlapp",
     statusBarStyle: "default",
   },
+  // favicon.ico (root app/) is auto-linked by Next's file convention; the SVG is
+  // preferred by modern browsers for a crisp tab icon at any DPI.
   icons: {
-    icon: "/icons/icon-192.png",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: "/icons/apple-touch-icon.png",
+  },
+  // Default link-preview card; per-page metadata (e.g. invites) overrides this.
+  openGraph: {
+    type: "website",
+    siteName: "Overlapp",
+    title: "Overlapp",
+    description:
+      "A persistent shared group calendar — know when everyone's free before anyone asks.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Overlapp — a shared group calendar",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Overlapp",
+    description:
+      "A persistent shared group calendar — know when everyone's free before anyone asks.",
+    images: ["/og-image.png"],
   },
 };
 

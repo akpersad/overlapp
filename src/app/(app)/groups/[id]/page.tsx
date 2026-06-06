@@ -417,6 +417,11 @@ export default async function GroupPage({
           <InvitePanel
             groupId={group.id}
             groupName={group.name}
+            inviterName={
+              (active.find((m) => m.user_id === user.id)?.profiles as
+                | ProfileLite
+                | undefined)?.first_name ?? "A friend"
+            }
             invites={invites}
             pending={pendingEmails}
           />

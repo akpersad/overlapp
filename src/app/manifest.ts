@@ -3,7 +3,8 @@ import type { MetadataRoute } from "next";
 // Web app manifest (Phase 4 — installable PWA). Next serves this at
 // /manifest.webmanifest and links it from <head> automatically. The icons are
 // the generated "overlap" mark (scripts/generate-icons.mjs). theme_color is the
-// indigo accent so the OS chrome matches the app.
+// honey brand and background_color the cream base, so the OS chrome matches the
+// Phase-7 "Bright & Friendly" theme.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Overlapp",
@@ -14,8 +15,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#ffffff",
-    theme_color: "#4f46e5",
+    background_color: "#faf7f0",
+    theme_color: "#efa94a",
     categories: ["productivity", "social", "lifestyle"],
     icons: [
       {

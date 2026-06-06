@@ -102,8 +102,9 @@ created in the reconnected account; only the in-app lock→UI round-trip remains
 **Playwright e2e/visual** layer (`npm run test:e2e`) driving the whole loop as a user against the
 local stack (screenshots reviewed then deleted). `tsc`, `eslint`, `next build` all green. Scripts:
 `test`, `test:unit`, `test:integration`, `test:e2e`, `db:start`/`db:reset`/`db:stop`.
-(NB: the e2e calendars step asserts the "not configured" notice, so run e2e with
-`GOOGLE_CLIENT_ID`/`SECRET` unset — they're set in `.env.local` for the live round-trip.)
+(`playwright.config.ts` now blanks `GOOGLE_*`/`MICROSOFT_*` and pins the local
+`SUPABASE_SERVICE_ROLE_KEY` in the dev-server env, so e2e is deterministic regardless of
+`.env.local`; no need to unset anything manually.)
 
 **Migrations applied to BOTH local and the hosted PRODUCTION project via the Supabase MCP**
 (5 new, ledger versions `20260604141324`→`145228`: calendar tables, availability-RPC extension,
@@ -206,6 +207,27 @@ with no app changes. Migration `20260605211948_fix_allday_busy_timezone` applied
 hosted production via MCP (advisors unchanged — the helper stays SECURITY INVOKER). **144
 unit+integration** green (+3 in `availability.test.ts`); `tsc`/`eslint`/`next build` green. A minor
 heatmap-vs-DST grid misalignment was newly logged in `PRE-LAUNCH.md` as a low-priority follow-up.
+
+**Onboarding / invite-share polish (2026-06-05, same branch `fix/pre-launch-functional`).** Five
+first-run fixes: (1) **invite share message + link preview** — personalized Web Share copy plus
+`generateMetadata` on `/invite/[token]` + `metadataBase`/default Open Graph on the root layout, so a
+pasted link renders a card not a bare URL; (2) **OG banner** — `scripts/generate-og-image.mjs` →
+`public/og-image.png` (1200×630 brand Venn + wordmark), wired as `summary_large_image`; (3) **avatar
+upload RLS bug fixed** — `uploadAvatar`/`removeAvatar` now do the storage write via the **service-role**
+admin client (the SSR client wasn't attaching the session to storage requests; the action still
+hard-scopes the `${user.id}/avatar` path), verified end-to-end against hosted — **now requires
+`SUPABASE_SERVICE_ROLE_KEY`** (already required elsewhere); (4) **share-link invitees auto-join after
+email confirmation** — new SECURITY DEFINER RPC `register_invite_signup` (migration
+`20260606030000_share_link_invite_signup_bridge`, applied local **and** hosted) records a
+`pending_invite` from the `signUp` action *before* `auth.signUp`, so the existing `handle_new_user`
+trigger joins them with no email-template/redirect changes; (5) **PWA install hand-holding** —
+`InstallPrompt` now shows numbered, platform-specific steps with the iOS Share / Add-to-Home glyphs.
+Plus a consolidated **"Swap localhost → deployed URL"** section in `PRE-LAUNCH.md` (incl. the
+easy-to-miss Supabase Auth Site URL + redirect allow-list). **146 unit+integration** green;
+`tsc`/`eslint`/`next build` green; `get_advisors(security)` clean except the intentional items (the
+new anon-callable `register_invite_signup` adds the expected anon + authenticated
+`security_definer_function_executable` WARNs — same accepted pattern as `get_invite_preview`). e2e
+deferred to the next session.
 
 **Next:** owner-driven pre-launch work (OAuth verification, deploy, confirm the `CONTACT_EMAIL`
 mailbox) in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in

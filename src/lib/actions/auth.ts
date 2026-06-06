@@ -37,6 +37,21 @@ export async function signUp(
   }
 
   const supabase = await createClient();
+
+  // Signing up FROM a share-link invite? Record an email-keyed pending_invite
+  // BEFORE creating the account so the handle_new_user() trigger auto-joins the
+  // group at signup — the same robust path email invites use. This survives the
+  // email-confirmation redirect (which otherwise drops the /invite/<token>
+  // destination). Best-effort: a bad/expired token no-ops server-side, and the
+  // user can still join by re-opening the link, so we never block signup on it.
+  const inviteToken = next.match(/^\/invite\/([^/?#]+)/)?.[1];
+  if (inviteToken) {
+    await supabase.rpc("register_invite_signup", {
+      p_token: decodeURIComponent(inviteToken),
+      p_email: email,
+    });
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,

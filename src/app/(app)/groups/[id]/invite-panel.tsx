@@ -15,11 +15,13 @@ type Pending = { id: string; email: string };
 export function InvitePanel({
   groupId,
   groupName,
+  inviterName,
   invites,
   pending,
 }: {
   groupId: string;
   groupName: string;
+  inviterName: string;
   invites: Invite[];
   pending: Pending[];
 }) {
@@ -57,6 +59,7 @@ export function InvitePanel({
                 <ShareButton
                   token={inv.token}
                   groupName={groupName}
+                  inviterName={inviterName}
                 />
                 <span className="text-xs text-ink-subtle tabular">
                   used {inv.use_count}×
@@ -113,17 +116,24 @@ export function InvitePanel({
 function ShareButton({
   token,
   groupName,
+  inviterName,
 }: {
   token: string;
   groupName: string;
+  inviterName: string;
 }) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
     const url = `${window.location.origin}/invite/${token}`;
     const shareData = {
-      title: "Join my Overlapp group",
-      text: `Join "${groupName}" on Overlapp`,
+      // `title` is what surfaces as the subject when shared to Mail; `text`
+      // rides above the link-preview card in chat apps (iMessage/WhatsApp).
+      title: `${inviterName} invited you to ${groupName} on Overlapp`,
+      text:
+        `${inviterName} invited you to “${groupName}” on Overlapp — a shared ` +
+        `group calendar that shows when everyone's free, so you can skip the ` +
+        `back-and-forth. Tap to join:`,
       url,
     };
     // Prefer the native share sheet (spec: invites via Web Share API).
