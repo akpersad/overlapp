@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useActionState,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useActionState, useMemo, useState, useSyncExternalStore } from "react";
 
 import { createProposal } from "@/lib/actions/proposals";
 import { btnPrimary, btnSecondary, errorText, input, label } from "@/lib/ui";
@@ -26,53 +21,32 @@ function tzList(): string[] {
 }
 
 // One candidate slot, expressed in the proposer's local time (converted to UTC
-// ISO on submit, like the manual-block editor).
-type Draft = { id: number; date: string; start: string; end: string };
+// ISO on submit, like the manual-block editor). State lives in the parent
+// ProposeWorkspace so the calendar's drag-select and these fields share it.
+export type Draft = { id: number; date: string; start: string; end: string };
 
-function localToIso(date: string, time: string): string {
+export function localToIso(date: string, time: string): string {
   if (!date || !time) return "";
   const d = new Date(`${date}T${time}`); // local time
   return isNaN(d.getTime()) ? "" : d.toISOString();
 }
 
-// Split an ISO instant into the local date + time strings the inputs use.
-function isoToLocalParts(iso?: string): { date: string; time: string } {
-  if (!iso) return { date: "", time: "" };
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return { date: "", time: "" };
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return {
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-  };
-}
-
-let nextId = 1;
-
 export function ProposeForm({
   groupId,
   initialTitle = "",
-  initialStart,
-  initialEnd,
+  drafts,
+  onUpdate,
+  onAdd,
+  onRemove,
 }: {
   groupId: string;
   initialTitle?: string;
-  initialStart?: string;
-  initialEnd?: string;
+  drafts: Draft[];
+  onUpdate: (id: number, patch: Partial<Draft>) => void;
+  onAdd: () => void;
+  onRemove: (id: number) => void;
 }) {
   const [state, action, pending] = useActionState(createProposal, undefined);
-  // Seed the first candidate from a recurring-hangout occurrence when present
-  // (Phase 4 "Propose this"); otherwise an empty default slot.
-  const seeded = isoToLocalParts(initialStart);
-  const seededEnd = isoToLocalParts(initialEnd);
-  const [drafts, setDrafts] = useState<Draft[]>([
-    {
-      id: 0,
-      date: seeded.date,
-      start: seeded.time || "18:00",
-      end: seededEnd.time || "19:00",
-    },
-  ]);
 
   // Pinned time zone is optional (empty = each member sees their own local
   // zone). The dropdown is populated client-side only — see `tzList` — so we
@@ -96,19 +70,6 @@ export function ProposeForm({
       return "";
     }
   }, [mounted]);
-
-  function update(id: number, patch: Partial<Draft>) {
-    setDrafts((cur) => cur.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-  }
-  function addDraft() {
-    setDrafts((cur) => [
-      ...cur,
-      { id: nextId++, date: "", start: "18:00", end: "19:00" },
-    ]);
-  }
-  function removeDraft(id: number) {
-    setDrafts((cur) => (cur.length > 1 ? cur.filter((d) => d.id !== id) : cur));
-  }
 
   const options = useMemo(
     () =>
@@ -149,6 +110,9 @@ export function ProposeForm({
 
       <div className="flex flex-col gap-3">
         <span className={label}>Candidate times</span>
+        <p className="text-xs text-ink-muted">
+          Drag on the calendar to add a time, or set one by hand here.
+        </p>
         {drafts.map((d, i) => (
           <div
             key={d.id}
@@ -160,7 +124,7 @@ export function ProposeForm({
               </span>
               <button
                 type="button"
-                onClick={() => removeDraft(d.id)}
+                onClick={() => onRemove(d.id)}
                 disabled={drafts.length === 1}
                 className="text-xs text-red-700 hover:underline disabled:opacity-30 dark:text-red-300"
               >
@@ -172,7 +136,7 @@ export function ProposeForm({
               <input
                 type="date"
                 value={d.date}
-                onChange={(e) => update(d.id, { date: e.target.value })}
+                onChange={(e) => onUpdate(d.id, { date: e.target.value })}
                 className={input}
                 required
               />
@@ -183,7 +147,7 @@ export function ProposeForm({
                 <input
                   type="time"
                   value={d.start}
-                  onChange={(e) => update(d.id, { start: e.target.value })}
+                  onChange={(e) => onUpdate(d.id, { start: e.target.value })}
                   className={input}
                   required
                 />
@@ -193,7 +157,7 @@ export function ProposeForm({
                 <input
                   type="time"
                   value={d.end}
-                  onChange={(e) => update(d.id, { end: e.target.value })}
+                  onChange={(e) => onUpdate(d.id, { end: e.target.value })}
                   className={input}
                   required
                 />
@@ -203,7 +167,7 @@ export function ProposeForm({
         ))}
         <button
           type="button"
-          onClick={addDraft}
+          onClick={onAdd}
           className={`${btnSecondary} self-start !py-1 !text-xs`}
         >
           + Add another time

@@ -3,9 +3,7 @@ import { notFound } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { card } from "@/lib/ui";
-import { Heatmap } from "../../heatmap";
-import { ProposeForm } from "./propose-form";
+import { ProposeWorkspace } from "./propose-workspace";
 
 export const metadata = { title: "Propose a time · Overlapp" };
 
@@ -49,35 +47,20 @@ export default async function NewProposalPage({
         Propose a time
       </h1>
       <p className="text-body-sm text-ink-muted">
-        Seed a few candidate slots. Use the group&apos;s availability on the
-        right to pick times that already work — everyone marks which they can
-        do, then you lock the winner.
+        Open a day on the group&apos;s availability, then drag across the times
+        you want — each drag seeds a candidate. Everyone marks which they can do,
+        then you lock the winner.
       </p>
-      {/* Form + a live reference heatmap so you can read the group's
-          availability without leaving the page. Mobile: form first, heatmap
-          reference below. Desktop: form left, heatmap right (sticky). */}
-      <div className="grid items-start gap-4 lg:grid-cols-2">
-        <div className={`${card} min-w-0`}>
-          <ProposeForm
-            groupId={group.id}
-            initialTitle={title ?? ""}
-            initialStart={start}
-            initialEnd={end}
-          />
-        </div>
-        <div className="flex min-w-0 flex-col gap-2 lg:sticky lg:top-4">
-          <h2 className="text-sm font-semibold text-ink">
-            Group availability
-          </h2>
-          <p className="text-xs text-ink-muted">
-            When the group is free. Deeper = more people available. Read a slot
-            here, then enter it on the left.
-          </p>
-          <div className={card}>
-            <Heatmap groupId={group.id} slotMinutes={group.slot_minutes} />
-          </div>
-        </div>
-      </div>
+      {/* Form left, interactive heatmap right (sticky). Drag a range on the
+          calendar to seed a candidate; the form fields stay editable. They
+          share one drafts state via ProposeWorkspace. */}
+      <ProposeWorkspace
+        groupId={group.id}
+        slotMinutes={group.slot_minutes}
+        initialTitle={title ?? ""}
+        initialStart={start}
+        initialEnd={end}
+      />
     </div>
   );
 }

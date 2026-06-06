@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -22,6 +22,12 @@ const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MS_PER_DAY = 86_400_000;
 
 type View = "month" | "week" | "day";
+
+// A drag-selected candidate range, used only in the proposal "selectable" mode.
+// `dayMs` is the local start-of-day epoch; `startMin`/`endMin` are minutes from
+// local midnight (endMin exclusive). Derived from the propose-form drafts so the
+// overlay and the form stay one source of truth.
+export type Selection = { dayMs: number; startMin: number; endMin: number };
 
 type Slot = {
   slot_start: string;
@@ -82,9 +88,17 @@ function rangeFor(view: View, anchor: Date): { from: Date; to: Date; days: Date[
 export function Heatmap({
   groupId,
   slotMinutes,
+  selectable = false,
+  selections = [],
+  onSelect,
 }: {
   groupId: string;
   slotMinutes: number;
+  // Proposal mode: let the user drag a candidate range on the week/day grid.
+  // Off by default so the group page stays a read-only heatmap.
+  selectable?: boolean;
+  selections?: Selection[];
+  onSelect?: (day: Date, startMin: number, endMin: number) => void;
 }) {
   const [view, setView] = useState<View>("month");
   // The whole heatmap is anchored on the browser's clock + time zone (today,
@@ -380,7 +394,15 @@ export function Heatmap({
             onPick={openDay}
           />
         ) : (
-          <SlotGrid days={days} rowTimes={rowTimes} byTime={byTime} />
+          <SlotGrid
+            days={days}
+            rowTimes={rowTimes}
+            byTime={byTime}
+            slotMinutes={slotMinutes}
+            selectable={selectable}
+            selections={selections}
+            onSelect={onSelect}
+          />
         )}
       </div>
 
@@ -499,14 +521,102 @@ function SlotGrid({
   days,
   rowTimes,
   byTime,
+  slotMinutes,
+  selectable = false,
+  selections = [],
+  onSelect,
 }: {
   days: Date[];
   rowTimes: number[];
   byTime: Map<number, Slot>;
+  slotMinutes: number;
+  selectable?: boolean;
+  selections?: Selection[];
+  onSelect?: (day: Date, startMin: number, endMin: number) => void;
 }) {
   const gridTemplateColumns = `44px repeat(${days.length}, 1fr)`;
+  const gridRef = useRef<HTMLDivElement>(null);
+  // Live drag preview: locked to the day column where the drag began. from/to
+  // are slot-start minutes (inclusive); committed as a range on pointer-up.
+  const [drag, setDrag] = useState<{
+    dayIndex: number;
+    fromMin: number;
+    toMin: number;
+  } | null>(null);
+
+  // Column day as a midnight epoch, to match Selection.dayMs.
+  const dayMs = useMemo(() => days.map((d) => d.getTime()), [days]);
+
+  // Resolve the cell under a pointer position via data attributes. Works for
+  // mouse and touch: the grid captures the pointer (so e.target is the grid
+  // mid-drag), and elementFromPoint finds the actual cell underneath.
+  function cellAt(
+    clientX: number,
+    clientY: number,
+  ): { di: number; min: number } | null {
+    const el = document
+      .elementFromPoint(clientX, clientY)
+      ?.closest<HTMLElement>("[data-min]");
+    if (!el) return null;
+    const di = Number(el.dataset.di);
+    const min = Number(el.dataset.min);
+    if (Number.isNaN(di) || Number.isNaN(min)) return null;
+    return { di, min };
+  }
+
+  function handlePointerDown(e: React.PointerEvent) {
+    if (!onSelect) return;
+    const hit = cellAt(e.clientX, e.clientY);
+    if (!hit) return;
+    e.preventDefault();
+    gridRef.current?.setPointerCapture(e.pointerId);
+    setDrag({ dayIndex: hit.di, fromMin: hit.min, toMin: hit.min });
+  }
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!drag) return;
+    const hit = cellAt(e.clientX, e.clientY);
+    // Stay within the day the drag started in; only extend the time range.
+    if (!hit || hit.di !== drag.dayIndex || hit.min === drag.toMin) return;
+    setDrag({ ...drag, toMin: hit.min });
+  }
+  function handlePointerUp(e: React.PointerEvent) {
+    if (!drag) return;
+    gridRef.current?.releasePointerCapture(e.pointerId);
+    const lo = Math.min(drag.fromMin, drag.toMin);
+    const hi = Math.max(drag.fromMin, drag.toMin);
+    onSelect?.(days[drag.dayIndex], lo, hi + slotMinutes); // end is exclusive
+    setDrag(null);
+  }
+
+  // Is this cell inside the live drag preview or a committed selection?
+  function isSelected(di: number, min: number): boolean {
+    if (
+      drag &&
+      drag.dayIndex === di &&
+      min >= Math.min(drag.fromMin, drag.toMin) &&
+      min <= Math.max(drag.fromMin, drag.toMin)
+    ) {
+      return true;
+    }
+    return selections.some(
+      (s) => s.dayMs === dayMs[di] && min >= s.startMin && min < s.endMin,
+    );
+  }
+
+  const heightClass = selectable ? "h-7" : "h-[18px]";
+
   return (
-    <div style={{ minWidth: days.length > 1 ? 480 : 200 }}>
+    <div
+      ref={gridRef}
+      style={{
+        minWidth: days.length > 1 ? 480 : 200,
+        touchAction: selectable ? "none" : undefined,
+      }}
+      onPointerDown={selectable ? handlePointerDown : undefined}
+      onPointerMove={selectable ? handlePointerMove : undefined}
+      onPointerUp={selectable ? handlePointerUp : undefined}
+      className={selectable ? "cursor-pointer select-none" : undefined}
+    >
       {/* Header row */}
       <div className="grid gap-[3px]" style={{ gridTemplateColumns }}>
         <div />
@@ -542,6 +652,10 @@ function SlotGrid({
                 <HeatCell
                   key={di}
                   slot={slot}
+                  dayIndex={di}
+                  minutes={minutes}
+                  selected={selectable && isSelected(di, minutes)}
+                  heightClass={heightClass}
                   label={cell.toLocaleString(undefined, {
                     weekday: "short",
                     hour: "numeric",
@@ -571,10 +685,43 @@ function avBucket(freeCount: number, total: number, everyoneFree: boolean) {
   return 4;
 }
 
-function HeatCell({ slot, label }: { slot?: Slot; label: string }) {
+function HeatCell({
+  slot,
+  label,
+  dayIndex,
+  minutes,
+  selected = false,
+  heightClass = "h-[18px]",
+}: {
+  slot?: Slot;
+  label: string;
+  // Data attributes let the drag pointer-handler resolve which cell is under
+  // the pointer via elementFromPoint (see SlotGrid.cellAt).
+  dayIndex: number;
+  minutes: number;
+  selected?: boolean;
+  heightClass?: string;
+}) {
+  // Honey wash + inset ring drawn ON TOP of the availability tint, so a dragged
+  // candidate range stays readable against the underlying free/busy colour.
+  const selOverlay = selected ? (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 rounded-[5px] bg-honey-500/40 ring-2 ring-inset ring-honey-600"
+    />
+  ) : null;
+
   if (!slot || slot.total_members === 0) {
     // Warm empty — sits in the cream family (charcoal family in dark), never a grey box.
-    return <div className="h-[18px] rounded-[5px] bg-av-0" aria-hidden />;
+    return (
+      <div
+        data-di={dayIndex}
+        data-min={minutes}
+        className={`relative ${heightClass} rounded-[5px] bg-av-0`}
+      >
+        {selOverlay}
+      </div>
+    );
   }
   const bucket = avBucket(slot.free_count, slot.total_members, slot.everyone_free);
   // Cell text: ink on the light end (av-0..2), white on the dark end (av-3..5).
@@ -596,11 +743,14 @@ function HeatCell({ slot, label }: { slot?: Slot; label: string }) {
       : "";
   return (
     <div
+      data-di={dayIndex}
+      data-min={minutes}
       title={title}
       style={{ backgroundColor: `var(--av-${bucket})`, color: textColor }}
-      className={`flex h-[18px] items-center justify-center rounded-[5px] text-[10px] font-semibold tabular transition-colors duration-200 ease-soft${quorumRing}`}
+      className={`relative flex ${heightClass} items-center justify-center rounded-[5px] text-[10px] font-semibold tabular transition-colors duration-200 ease-soft${quorumRing}`}
     >
-      {slot.free_count > 0 ? slot.free_count : ""}
+      {selOverlay}
+      <span className="relative">{slot.free_count > 0 ? slot.free_count : ""}</span>
     </div>
   );
 }
