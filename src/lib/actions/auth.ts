@@ -10,12 +10,28 @@ import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = { error: string } | undefined;
 
+// State for the "fire-and-forget" email actions (reset request / resend), where
+// a success isn't a redirect but an in-place confirmation message. We always
+// report success on the reset request regardless of whether the address has an
+// account, so the form can't be used to enumerate registered emails.
+export type EmailActionState = { error: string } | { ok: true } | undefined;
+
 function safeRedirectTo(value: FormDataEntryValue | null): string {
   // Only allow same-origin app paths as a post-auth destination.
   if (typeof value === "string" && value.startsWith("/") && !value.startsWith("//")) {
     return value;
   }
   return "/dashboard";
+}
+
+/**
+ * Absolute origin for links Supabase emails back to the user (password reset,
+ * email confirmation). Same convention as the OAuth redirect builders
+ * (`src/lib/google/oauth.ts`); set `NEXT_PUBLIC_SITE_URL` in prod — see
+ * `docs/PRE-LAUNCH.md` "Swap localhost → the deployed URL".
+ */
+function siteUrl(): string {
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
 export async function signUp(
@@ -67,7 +83,9 @@ export async function signUp(
   if (data.session) {
     redirect(next === "/dashboard" ? "/onboarding" : next);
   }
-  redirect("/verify-email");
+  // No session → email confirmation is required. Carry the address through so
+  // the verify page can offer a one-click "resend" without re-typing it.
+  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
 }
 
 export async function signIn(
@@ -91,4 +109,76 @@ export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+/**
+ * "Forgot password" — emails a recovery link. The link lands on /auth/confirm
+ * (type=recovery), which establishes a short-lived recovery session and then
+ * forwards to /reset-password. We never reveal whether the address has an
+ * account: any non-empty email returns `ok` so the form can't enumerate users.
+ */
+export async function requestPasswordReset(
+  _prev: EmailActionState,
+  formData: FormData,
+): Promise<EmailActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Enter your email address." };
+
+  const supabase = await createClient();
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl()}/auth/confirm?next=/reset-password`,
+  });
+
+  return { ok: true };
+}
+
+/**
+ * Sets a new password for the user in the current (recovery) session. Reached
+ * from /reset-password after the recovery link has been verified, so a session
+ * must already exist — an expired/invalid link leaves no session and we say so.
+ */
+export async function updatePassword(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm_password") ?? "");
+
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+  if (password !== confirm) {
+    return { error: "Passwords don't match." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "This reset link has expired. Request a new one from the sign-in page." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message };
+
+  redirect("/dashboard");
+}
+
+/**
+ * Re-sends the signup confirmation email — the escape hatch when the original
+ * was missed or expired. Like the reset request, always reports `ok` (Supabase
+ * also no-ops silently for an already-confirmed or unknown address).
+ */
+export async function resendVerification(
+  _prev: EmailActionState,
+  formData: FormData,
+): Promise<EmailActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Enter your email address." };
+
+  const supabase = await createClient();
+  await supabase.auth.resend({ type: "signup", email });
+
+  return { ok: true };
 }

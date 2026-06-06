@@ -3,6 +3,33 @@
 > Created 2026-06-03. Purpose: let a fresh Claude Code session resume exactly where the
 > previous one left off. Read this first, then `CLAUDE.md` → `docs/SPEC.md` → `docs/DATA-MODEL.md`.
 
+## 2026-06-06 — auth-recovery + error boundaries (branch `session/pending-items`)
+
+Built the three remaining **in-app functional gaps** from `PRE-LAUNCH.md` (the only code items
+left before launch; everything else there is owner/ops — OAuth verification, deploy, DMARC, env):
+
+- **Password reset (the blocker).** New `/forgot-password` (email → `requestPasswordReset` →
+  `resetPasswordForEmail(email, { redirectTo: ${SITE}/auth/confirm?next=/reset-password })`) and
+  `/reset-password` (`updatePassword` → `updateUser({ password })`, confirm-password match,
+  "expired link" notice when no recovery session). `src/app/auth/confirm/route.ts` now defaults
+  `type=recovery` → `/reset-password` (works even if the email template's `next` isn't wired —
+  config-independent). Both added to proxy `PUBLIC_PATHS`; "Forgot password?" linked from `/login`.
+  Reset-request + resend both **always report success** (no account enumeration). The recovery
+  email template already exists (`docs/email-templates/reset-password.html`); pasting it into
+  Supabase + the prod link round-trip are the remaining owner/manual steps.
+- **Resend verification.** `/verify-email` now renders a `ResendForm`
+  (`resendVerification` → `auth.resend({ type:'signup', email })`); `signUp` redirects to
+  `/verify-email?email=…` so the address is pre-filled (falls back to an input if absent).
+- **Branded error/not-found boundaries.** Root `not-found.tsx`, `error.tsx` (client, retry via
+  `reset()` + optional `digest`), and `global-error.tsx` (self-contained html/body fallback) —
+  all on the Phase-7 tokens via `AuthCard` / `src/lib/ui.ts`. No more Next default error pages.
+- **No migration** — pure app-layer. **Gate:** `tsc`/`eslint`/`next build` clean; **146
+  unit+integration + 20 e2e green** (+4 e2e in `tests/e2e/auth-recovery.spec.ts`). Docs updated
+  (`PRE-LAUNCH.md` items marked done, `TESTING.md` e2e table + a password-reset manual check).
+- **Next:** the launch gate is now all owner/ops actions in `PRE-LAUNCH.md` (OAuth verification,
+  Vercel deploy + env, the localhost→prod-URL swap incl. Supabase Auth Site URL, DMARC, confirm the
+  `CONTACT_EMAIL` mailbox, enable leaked-password protection) + the manual round-trips in `TESTING.md`.
+
 ## 2026-06-05 — e2e suite expansion + brand icons (branch `fix/pre-launch-functional`)
 
 Pre-launch hardening of the test gate + icon polish:

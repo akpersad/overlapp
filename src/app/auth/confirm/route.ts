@@ -10,13 +10,15 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/onboarding";
+  // Recovery links must land on the password form; everything else onboards.
+  const fallback = type === "recovery" ? "/reset-password" : "/onboarding";
+  const next = searchParams.get("next") ?? fallback;
 
   if (tokenHash && type) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (!error) {
-      const dest = next.startsWith("/") && !next.startsWith("//") ? next : "/onboarding";
+      const dest = next.startsWith("/") && !next.startsWith("//") ? next : fallback;
       return NextResponse.redirect(new URL(dest, request.url));
     }
   }

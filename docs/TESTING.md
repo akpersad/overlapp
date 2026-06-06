@@ -143,6 +143,7 @@ local `SUPABASE_SERVICE_ROLE_KEY` so avatar upload + account deletion hit the lo
 |---|---|
 | `core-loop.spec.ts` | landing → signup → onboarding → group → availability → calendars notice → heatmap → invite preview |
 | `auth.spec.ts` | route gating, wrong-password error, signup → sign out → sign in |
+| `auth-recovery.spec.ts` | forgot-password request, expired reset-link notice, resend-verification, branded 404 |
 | `invite-redeem.spec.ts` | share-link preview → signup-from-invite → auto-join bridge (2 members) |
 | `proposals.spec.ts` | create multi-date proposal → RSVP → overlap → lock; cancel |
 | `group-management.spec.ts` | edit settings, promote/remove member, dissolve; leave a group you don't own |
@@ -165,6 +166,10 @@ manual check before/at launch:
   - **Microsoft Calendar is shelved from the MVP** — built and unit-tested (`microsoft.test.ts`),
     but NOT a launch verification item. The e2e config keeps `MICROSOFT_*` blank so the
     Connect-Microsoft button never renders. Revisit post-launch (`docs/MICROSOFT-SETUP.md`).
+- **Password-reset / email-confirmation link round-trip** — the request + landing pages are
+  e2e-covered (`auth-recovery.spec.ts`), but the emailed link itself (recovery + signup-confirm)
+  needs prod email (local GoTrue has confirmations off). Manual: on prod, request a reset, click
+  the emailed link, confirm it lands on `/reset-password`, set a new password, and sign in with it.
 - **Web Push delivery** — requires a production build + an installed PWA with a granted
   permission; `next dev` and the e2e browser can't grant/receive real pushes. The in-app
   subscribe path (`PushToggle`) and `notifyUsers` fan-out are wired; verify a real push lands on
