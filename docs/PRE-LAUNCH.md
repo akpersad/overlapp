@@ -111,35 +111,38 @@ paste an invite link into iMessage to confirm the preview card renders.
 - (Post-launch hardening, tracked separately: encrypt OAuth tokens at rest with
   Vault — `POST-LAUNCH.md`.)
 
-## In-app functional gaps to build (code — deferred to a fresh branch)
+## In-app functional gaps to build (code)  ✅ DONE (2026-06-06)
 
 > Identified 2026-06-06 reviewing launch readiness (the e2e expansion surfaced the
-> auth-recovery edges). These are missing **application code**, distinct from the
-> config/process items above. The core loop is solid + e2e-covered; these are edges.
-> Build order: password reset first (the only true blocker). Each should get e2e coverage.
+> auth-recovery edges); **all three built + e2e-covered 2026-06-06** on branch
+> `session/pending-items`. **146 unit+integration + 20 e2e green** (+4 e2e in
+> `tests/e2e/auth-recovery.spec.ts`); `tsc`/`eslint`/`next build` clean.
 
-- **Password reset / "forgot password" — blocker.** `src/lib/auth.ts` has only
-  `signUp`/`signIn`/`signOut`; a user who forgets their password is permanently
-  locked out. Add: a public **`/forgot-password`** page (email field →
-  `supabase.auth.resetPasswordForEmail(email, { redirectTo })`) and a
-  **`/reset-password`** page that, once the recovery link lands (handled like the
-  existing `src/app/auth/confirm/route.ts`, `type=recovery`), calls
-  `supabase.auth.updateUser({ password })`. Add both to the proxy `PUBLIC_PATHS`;
-  link "Forgot password?" from `/login`. Mirror the existing auth Server-Action +
-  form-state pattern. Needs the Supabase **recovery email template** (Resend) and a
-  redirect-allowlist entry. e2e can drive the request + reset pages; the emailed
-  link itself is a manual check (like verify-email).
+- **Password reset / "forgot password" — blocker.**  ✅ **DONE.** Public
+  **`/forgot-password`** page (email field → `requestPasswordReset` action →
+  `supabase.auth.resetPasswordForEmail(email, { redirectTo: ${SITE}/auth/confirm?next=/reset-password })`,
+  always reports success so it can't enumerate accounts) and a **`/reset-password`**
+  page (`updatePassword` action → `supabase.auth.updateUser({ password })`, with a
+  confirm-password match + "expired link" notice when no recovery session exists).
+  The recovery link lands on the existing `src/app/auth/confirm/route.ts`, which now
+  defaults `type=recovery` → `/reset-password` (config-independent: works even if the
+  email template's `next` isn't wired). Both added to the proxy `PUBLIC_PATHS`;
+  "Forgot password?" linked from `/login`. **Owner action still needed:** the
+  Supabase **recovery email template** already exists (`docs/email-templates/reset-password.html`,
+  uses `{{ .ConfirmationURL }}` like the verified signup-confirm template — paste it
+  into Supabase → Auth → Emails); the redirect target `/auth/confirm` is already
+  covered by the `https://YOUR_DOMAIN/**` allow-list entry above. The emailed link
+  round-trip is a manual check (like verify-email; local GoTrue has confirmations off).
 
-- **Branded error + not-found boundaries.** No `error.tsx` / `global-error.tsx` /
-  `not-found.tsx` exist under `src/app`, so prod shows Next's unstyled default on a
-  thrown server action or a bad/stale URL (revoked invite, deleted/bookmarked
-  group). Add a root **`not-found.tsx`** + **`error.tsx`** (and a `global-error.tsx`
-  fallback), styled with the Phase-7 tokens (reuse `AuthCard` / `src/lib/ui.ts`).
+- **Branded error + not-found boundaries.**  ✅ **DONE.** Root **`not-found.tsx`** +
+  **`error.tsx`** (client, with a retry via `reset()` + optional error `digest`) +
+  **`global-error.tsx`** (self-contained html/body fallback for root-layout failures),
+  all styled with the Phase-7 tokens (reuse `AuthCard` / `src/lib/ui.ts`).
 
-- **Resend-verification affordance.** `/verify-email` is a dead end if the email is
-  missed or expires. Add a "Resend email" action
-  (`supabase.auth.resend({ type: 'signup', email })`) — pass the email through from
-  signup or re-enter it. Pairs with password reset as the auth-recovery set.
+- **Resend-verification affordance.**  ✅ **DONE.** `/verify-email` now renders a
+  `ResendForm` (→ `resendVerification` action → `supabase.auth.resend({ type:'signup', email })`).
+  `signUp` redirects to `/verify-email?email=…` so the address is pre-filled (the form
+  falls back to an email input if absent). Always reports "sent" (no enumeration).
 
 ## Known correctness issues to resolve
 
@@ -179,7 +182,9 @@ paste an invite link into iMessage to confirm the preview card renders.
 - Run `/security-review` on the release diff.
 - Manual smoke on the **production domain**: signup → verify email → create group
   → invite → connect Google Calendar → heatmap reflects real busy time → delete
-  account.
+  account. Also: **forgot password → click the emailed link → land on
+  `/reset-password` → set a new password → sign in** (the link round-trip is the
+  one part of the reset flow the e2e suite can't cover).
 - Sanity-check the legal pages render and are linked.
 - **Run the manual-only checks** the e2e suite can't cover (live Google/Microsoft
   OAuth round-trip, Web Push delivery on an installed PWA, realtime heatmap

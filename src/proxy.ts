@@ -24,6 +24,10 @@ const PUBLIC_PATHS = [
   "/login",
   "/signup",
   "/verify-email",
+  // Password-recovery pages: request a link (signed-out) and set a new password
+  // (reached via the recovery session minted by /auth/confirm).
+  "/forgot-password",
+  "/reset-password",
   "/auth",
   "/invite",
   // Public legal pages (Phase 5) — reachable signed-out and required for Google
