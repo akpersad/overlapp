@@ -31,6 +31,13 @@
      Constant — it does NOT flip in dark mode, because those fills stay bright. */
   --on-accent: #2a2820;
 
+  /* --- Liquid Glass (Apple "Adopting Liquid Glass" toolbars/menus) ---
+     A translucent fill the page content shows through, plus a bright specular
+     top-edge highlight and a hairline edge. Float shadow is added per-use. */
+  --glass-fill: rgba(255, 255, 255, 0.6);
+  --glass-highlight: rgba(255, 255, 255, 0.6);
+  --glass-edge: rgba(50, 40, 10, 0.12);
+
   /* --- Availability ramp — deep pine (the hero data scale) ---
      6 buckets, monochrome green lightness scale → CVD-safe on its own. */
   --av-0: #e9e6da; /* none free (warm empty, in the cream family) */
@@ -83,6 +90,11 @@
     --honey-900: #f6cd86; /* chip text + warnings → light honey on dark */
     --honey-50: rgba(242, 178, 92, 0.16); /* pill / tag bg → subtle tint */
     --honey-100: rgba(242, 178, 92, 0.24); /* hover wash */
+
+    /* Glass on charcoal: tint the fill dark, soften the specular highlight. */
+    --glass-fill: rgba(36, 33, 27, 0.6);
+    --glass-highlight: rgba(255, 240, 210, 0.1);
+    --glass-edge: rgba(255, 240, 210, 0.14);
   }
 }
 
@@ -152,6 +164,18 @@
     background: var(--honey-100);
     color: var(--ink);
   }
+
+  /* iOS/Safari render native date & time controls shorter than text inputs and
+     vertically/center-align their value, which throws off form rows. Pin them
+     to the same box height and left-align the value so columns line up. */
+  input[type="date"],
+  input[type="time"] {
+    min-height: 2.5rem;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
 }
 
 /* ============================================================================
@@ -159,6 +183,18 @@
    Compose with colour utilities, e.g. `class="text-display-xl text-ink"`.
    ========================================================================== */
 @layer components {
+  /* Liquid Glass material (Apple "Adopting Liquid Glass") — a translucent fill
+     the content scrolls through, a heavy blur + saturation boost for vibrancy,
+     a bright specular top-edge highlight, and a hairline edge. Add a float
+     shadow (e.g. `shadow-lg`) and a radius at the call site. */
+  .glass {
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 0 var(--glass-highlight);
+  }
+
   .text-display-xl {
     font-family: var(--font-display);
     font-weight: 700;

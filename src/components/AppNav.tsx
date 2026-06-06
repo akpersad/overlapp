@@ -19,7 +19,7 @@ export async function AppNav({ profile }: { profile: Tables<"profiles"> }) {
 
   return (
     <>
-    <header className="sticky top-0 z-10 border-b border-border bg-bg/85 backdrop-blur">
+    <header className="sticky top-0 z-10 border-b border-border bg-bg/70 backdrop-blur-xl backdrop-saturate-150">
       <nav className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-5">
           <Link

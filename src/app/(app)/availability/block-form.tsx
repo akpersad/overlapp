@@ -48,20 +48,21 @@ export function BlockForm() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="date" className={label}>
-            Date
-          </label>
-          <input
-            id="date"
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className={input}
-          />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="date" className={label}>
+          Date
+        </label>
+        <input
+          id="date"
+          type="date"
+          required
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className={input}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="start" className={label}>
             From

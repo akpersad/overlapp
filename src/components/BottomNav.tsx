@@ -5,7 +5,10 @@ import { usePathname } from "next/navigation";
 
 // Thumb-reachable bottom tab bar for mobile (hidden on sm+). The dense top nav
 // doesn't fit a 375–430px phone, so primary navigation lives here on mobile
-// while the top bar slims to wordmark + avatar. Active tab = honey.
+// while the top bar slims to wordmark + avatar. Styled as a floating Liquid
+// Glass capsule (Apple "Adopting Liquid Glass" toolbars): translucent material
+// detached from the screen edge, content scrolling through it, with the active
+// tab marked by a tinted honey glass lozenge.
 
 type Tab = {
   href: string;
@@ -69,10 +72,10 @@ export function BottomNav({ unread }: { unread: number }) {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-bg/90 backdrop-blur sm:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed inset-x-0 bottom-0 z-20 px-4 sm:hidden"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
     >
-      <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
+      <ul className="glass mx-auto flex max-w-sm items-stretch justify-around rounded-full p-1.5 shadow-lg">
         {TABS.map((tab) => {
           const active = tab.match(pathname);
           return (
@@ -80,10 +83,16 @@ export function BottomNav({ unread }: { unread: number }) {
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium whitespace-nowrap transition-colors ${
+                className={`relative flex flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10px] font-medium whitespace-nowrap transition-colors duration-150 ease-soft ${
                   active ? "text-honey-700" : "text-ink-subtle"
                 }`}
               >
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-1 inset-y-0 -z-0 rounded-2xl bg-honey-500/20 ring-1 ring-inset ring-honey-500/30"
+                  />
+                )}
                 <span className="relative">
                   {tab.icon}
                   {tab.label === "Inbox" && unread > 0 && (
@@ -92,7 +101,7 @@ export function BottomNav({ unread }: { unread: number }) {
                     </span>
                   )}
                 </span>
-                {tab.label}
+                <span className="relative">{tab.label}</span>
               </Link>
             </li>
           );
