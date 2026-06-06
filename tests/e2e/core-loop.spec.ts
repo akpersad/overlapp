@@ -109,7 +109,11 @@ test("Phase 1 core loop: signup → group → availability → heatmap → invit
   const guest = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const guestPage = await guest.newPage();
   await guestPage.goto(`http://127.0.0.1:3100/invite/${token}`);
-  await expect(guestPage.getByText("Climbing Buddies")).toBeVisible();
+  // The invite <title> metadata also contains the group name, so scope to the
+  // heading (the AuthCard title) to avoid a strict-mode match on <title>.
+  await expect(
+    guestPage.getByRole("heading", { name: "Climbing Buddies" }),
+  ).toBeVisible();
   await expect(guestPage.getByRole("link", { name: /sign up to join/i })).toBeVisible();
   await guestPage.screenshot({
     path: "screenshots/09-invite-preview.png",

@@ -937,6 +937,10 @@ export type Database = {
           status: Database["public"]["Enums"]["member_status"]
         }[]
       }
+      register_invite_signup: {
+        Args: { p_token: string; p_email: string }
+        Returns: undefined
+      }
       shares_group_with: { Args: { p_user_id: string }; Returns: boolean }
       suggest_proposal_rsvps: {
         Args: { p_proposal_id: string }

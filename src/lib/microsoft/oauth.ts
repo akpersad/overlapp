@@ -54,8 +54,20 @@ function clientSecret(): string {
   return v;
 }
 
+// Microsoft Calendar is SHELVED from the MVP launch — the code is built and
+// unit-tested (the Google twin), but it is not a launch surface. This hard flag
+// keeps the entire MS connect path dormant: the Connect-Microsoft button, the
+// `connectMicrosoft` action, and the OAuth callback all gate on
+// microsoftConfigured(), so a single `false` here hides the whole feature
+// REGARDLESS of whether MICROSOFT_* env vars are set. To bring it back
+// post-launch, flip this to `true` (then env presence governs as usual).
+const MICROSOFT_MVP_ENABLED = false;
+
 export function microsoftConfigured(): boolean {
-  return Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
+  return (
+    MICROSOFT_MVP_ENABLED &&
+    Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET)
+  );
 }
 
 function siteUrl(): string {

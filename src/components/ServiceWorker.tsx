@@ -13,8 +13,29 @@ export function ServiceWorker() {
       return;
     }
     // Avoid registering against the dev server's HMR — the SW would cache stale
-    // chunks and fight Turbopack. Register only in production.
-    if (process.env.NODE_ENV !== "production") return;
+    // chunks and fight Turbopack. In dev we go further: a SW left over from a
+    // previous production build (or an installed PWA) keeps controlling the page
+    // and serves its cache-first /_next/static chunks. Turbopack reuses stable
+    // dev chunk URLs whose CONTENTS change on every edit, so that cache hands the
+    // browser stale JS — old client code then hydrates against the dev server's
+    // fresh HTML and throws a hydration mismatch. So in dev, unregister any SW
+    // and drop its caches (self-healing; do one hard reload to shed the
+    // still-controlling worker on the current page).
+    if (process.env.NODE_ENV !== "production") {
+      void (async () => {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(
+            keys
+              .filter((k) => k.startsWith("overlapp-"))
+              .map((k) => caches.delete(k)),
+          );
+        }
+      })();
+      return;
+    }
 
     const onLoad = () => {
       navigator.serviceWorker.register("/sw.js").catch(() => {

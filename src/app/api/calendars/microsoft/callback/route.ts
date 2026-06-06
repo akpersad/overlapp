@@ -2,7 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { exchangeCode, MS_OAUTH_STATE_COOKIE } from "@/lib/microsoft/oauth";
+import {
+  exchangeCode,
+  microsoftConfigured,
+  MS_OAUTH_STATE_COOKIE,
+} from "@/lib/microsoft/oauth";
 import { saveConnection, syncCalendar } from "@/lib/calendar/sync";
 
 // Microsoft OAuth callback — the Google twin. Validates the CSRF state,
@@ -15,6 +19,10 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error");
 
   const back = (qs: string) => NextResponse.redirect(new URL(`/calendars?${qs}`, request.url));
+
+  // Microsoft is shelved from the MVP (see microsoftConfigured) — the connect
+  // flow is disabled, so a stray callback hit is inert.
+  if (!microsoftConfigured()) return back("error=not_configured");
 
   if (error) return back(`error=${encodeURIComponent(error)}`);
   if (!code || !state) return back("error=missing_code");

@@ -133,6 +133,47 @@ At the close of each phase:
   Playwright boots `next dev` with env pointed at the local Supabase stack (overriding
   `.env.local`, which targets hosted). Mobile viewport (Pixel 7) — Overlapp is mobile-first.
 
+## E2E coverage (Playwright)
+
+`npm run test:e2e` drives the app as real users against the LOCAL stack. The suite runs with
+calendar providers **unconfigured** (the config blanks `GOOGLE_*`/`MICROSOFT_*` and pins the
+local `SUPABASE_SERVICE_ROLE_KEY` so avatar upload + account deletion hit the local admin path):
+
+| Spec | Flow covered |
+|---|---|
+| `core-loop.spec.ts` | landing → signup → onboarding → group → availability → calendars notice → heatmap → invite preview |
+| `auth.spec.ts` | route gating, wrong-password error, signup → sign out → sign in |
+| `invite-redeem.spec.ts` | share-link preview → signup-from-invite → auto-join bridge (2 members) |
+| `proposals.spec.ts` | create multi-date proposal → RSVP → overlap → lock; cancel |
+| `group-management.spec.ts` | edit settings, promote/remove member, dissolve; leave a group you don't own |
+| `profile.spec.ts` | edit profile, avatar upload+remove, notifications section, delete-account transfer UI |
+| `notifications.spec.ts` | inbox item → mark all read → dismiss → empty state |
+| `recurring-hangouts.spec.ts` | create a hangout → next occurrence → "Propose this" pre-seed |
+| `legal-public.spec.ts` | `/privacy`, `/terms`, footer links, `/design` (signed-out) |
+
+## Manual pre-launch checks (not automatable)
+
+A few flows depend on external services and **cannot** be exercised by Playwright against the
+local stack. Their deterministic pieces are unit/integration-tested; the live round-trip is a
+manual check before/at launch:
+
+- **Google OAuth round-trip** — the consent screen is third-party. Unit tests cover the
+  OAuth-URL build + Google→`events` mapping (`google.test.ts`); steps to run the live connect →
+  consent → first sync are in `docs/GOOGLE-SETUP.md`. (Because the e2e suite runs with providers
+  unconfigured, the Calendars page's **"Connect Google"** button rendering is also a manual visual
+  check.)
+  - **Microsoft Calendar is shelved from the MVP** — built and unit-tested (`microsoft.test.ts`),
+    but NOT a launch verification item. The e2e config keeps `MICROSOFT_*` blank so the
+    Connect-Microsoft button never renders. Revisit post-launch (`docs/MICROSOFT-SETUP.md`).
+- **Web Push delivery** — requires a production build + an installed PWA with a granted
+  permission; `next dev` and the e2e browser can't grant/receive real pushes. The in-app
+  subscribe path (`PushToggle`) and `notifyUsers` fan-out are wired; verify a real push lands on
+  an installed PWA post-deploy (see `docs/PWA-SETUP.md`).
+- **Realtime heatmap delivery** — the websocket subscribe→receive can't be asserted headlessly;
+  the authorization boundary (who may receive the group doorbell) is covered by
+  `tests/integration/realtime.test.ts`. Manual: open two browsers on the same group, edit
+  availability in one, watch the other re-fetch within ~1s.
+
 ## Findings (bugs caught by these tests)
 
 - **`groups` insert via `.select()` rejected (42501).** `insert(...).select()` does

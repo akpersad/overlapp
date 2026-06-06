@@ -37,6 +37,10 @@
 
 ## Hardening
 
+- **Error monitoring / observability** — there's currently no error tracking, so a
+  prod failure (server action throw, sync worker error) is invisible until a user
+  reports it. Wire a free-tier tracker (e.g. Sentry hobby) for the app + the cron
+  route. Not a launch blocker, but the first thing to add once real users exist.
 - **Encrypt OAuth tokens at rest** with Supabase Vault / pgsodium (free).
   Currently `calendar_secrets` is service-role-only (no Data-API grants) which
   DATA-MODEL §9-C sanctions; Vault adds encryption-at-rest on top.

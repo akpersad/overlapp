@@ -6,7 +6,7 @@ import { localSupabase } from "./tests/e2e/_creds";
 // Supabase stack (env below overrides .env.local, which points at hosted) and
 // drives the real flows as a user. Mobile viewport — Overlapp is mobile-first.
 const PORT = 3100;
-const { url, anonKey } = localSupabase();
+const { url, anonKey, serviceKey } = localSupabase();
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -29,6 +29,18 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_SUPABASE_URL: url,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: anonKey,
+      // The admin client (avatar upload, account deletion) reads this; .env.local
+      // points it at the HOSTED project, which would fail against the LOCAL URL
+      // above. Pin it to the local stack's service-role key so those flows work.
+      SUPABASE_SERVICE_ROLE_KEY: serviceKey,
+      // Force calendar sync OFF for the suite regardless of what .env.local holds,
+      // so the Calendars page deterministically renders the "not configured" notice.
+      // (.env.local sets these for the live OAuth round-trip — a manual check, see
+      // docs/TESTING.md → Manual pre-launch checks.)
+      GOOGLE_CLIENT_ID: "",
+      GOOGLE_CLIENT_SECRET: "",
+      MICROSOFT_CLIENT_ID: "",
+      MICROSOFT_CLIENT_SECRET: "",
     },
   },
 });

@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { card } from "@/lib/ui";
-import { ProposeForm } from "./propose-form";
+import { ProposeWorkspace } from "./propose-workspace";
 
 export const metadata = { title: "Propose a time · Overlapp" };
 
@@ -22,7 +21,7 @@ export default async function NewProposalPage({
 
   const { data: group } = await supabase
     .from("groups")
-    .select("id, name")
+    .select("id, name, slot_minutes")
     .eq("id", id)
     .maybeSingle();
   if (!group) notFound();
@@ -48,17 +47,20 @@ export default async function NewProposalPage({
         Propose a time
       </h1>
       <p className="text-body-sm text-ink-muted">
-        Seed a few candidate slots. Everyone marks which work for them, then you
-        lock the winner.
+        Open a day on the group&apos;s availability, then drag across the times
+        you want — each drag seeds a candidate. Everyone marks which they can do,
+        then you lock the winner.
       </p>
-      <div className={card}>
-        <ProposeForm
-          groupId={group.id}
-          initialTitle={title ?? ""}
-          initialStart={start}
-          initialEnd={end}
-        />
-      </div>
+      {/* Form left, interactive heatmap right (sticky). Drag a range on the
+          calendar to seed a candidate; the form fields stay editable. They
+          share one drafts state via ProposeWorkspace. */}
+      <ProposeWorkspace
+        groupId={group.id}
+        slotMinutes={group.slot_minutes}
+        initialTitle={title ?? ""}
+        initialStart={start}
+        initialEnd={end}
+      />
     </div>
   );
 }
