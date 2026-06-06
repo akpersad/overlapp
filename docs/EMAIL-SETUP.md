@@ -45,7 +45,21 @@ copy, a button, a plaintext fallback link, and a footer live in
 - `invite.html` → **"Invite user"**
 
 To install: Supabase → Authentication → Emails → **Templates** → pick the template →
-paste the HTML → Save. All use the `{{ .ConfirmationURL }}` variable.
+paste the HTML → Save.
+
+> ⚠️ **Use the `token_hash` link form, NOT `{{ .ConfirmationURL }}`.** The default
+> `{{ .ConfirmationURL }}` resolves to the **PKCE code flow** — it bounces the user to
+> `{{ .SiteURL }}/?code=…` (the homepage), which the app does not handle, so confirmation
+> silently fails and the user just lands on the landing page. The templates instead point
+> the button straight at the app's verification route:
+> `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=…`
+> (`type=email` for Confirm signup / Magic Link, `type=recovery` for Reset Password,
+> `type=invite` for Invite user). `/auth/confirm` calls `verifyOtp({ token_hash, type })`,
+> which works **cross-device** (the PKCE `?code` flow does not — it needs the code-verifier
+> cookie from the originating browser). This matches the
+> [Supabase server-side auth guide](https://supabase.com/docs/guides/auth/server-side/nextjs).
+> If you ever re-paste a stock Supabase template, swap `{{ .ConfirmationURL }}` for the
+> `token_hash` form or signup confirmation breaks again.
 
 ### Fix B — Add a DMARC record (Vercel DNS)
 SPF + DKIM passing is no longer enough; Gmail/Yahoo expect DMARC. Adding it is the most
