@@ -45,6 +45,15 @@
   test-user cap. Free, but can take time — start early.
 - **Interim (free, zero-friction):** stay in "Testing" and add each user under
   **Test users** (cap 100). Fine for a small private launch.
+- ⚠️ **Refresh tokens expire after 7 days while the app is in "Testing".** This is
+  a Google policy, not a bug — a connected Google calendar will start failing
+  token refresh (`invalid_grant` / "Token has been expired or revoked") about a
+  week after connecting, and the user must reconnect. **Publishing the app to
+  Production removes this 7-day cap** (refresh tokens then last until the user
+  revokes access or 6 months of inactivity). Until then, expect periodic
+  reconnects. The app now handles this gracefully: an expired grant flips the
+  calendar to "Reconnect needed" with a one-click **Reconnect** button on
+  `/calendars` instead of leaking the raw error.
 
 ## Deployment (Vercel — free Hobby tier)
 

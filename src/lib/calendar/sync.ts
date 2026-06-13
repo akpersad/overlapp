@@ -379,6 +379,11 @@ export async function writeBackProposal(
     } catch (err) {
       result.failed++;
       const message = err instanceof Error ? err.message : String(err);
+      // A reauth/scope failure means the connection is dead — flip sync_state so
+      // the UI shows "Reconnect needed" + the Reconnect button right away rather
+      // than waiting for the next scheduled sync to discover it.
+      const needsReconnect =
+        message === "reauth_required" || message === "insufficient_scope";
       const note =
         message === "insufficient_scope"
           ? "Reconnect to enable write-back (calendar write permission)."
@@ -387,8 +392,79 @@ export async function writeBackProposal(
             : `Write-back failed: ${message}`;
       await admin
         .from("calendars")
-        .update({ last_error: note })
+        .update({
+          last_error: note,
+          ...(needsReconnect ? { sync_state: "revoked" as const } : {}),
+        })
         .eq("id", calendar.id);
+    }
+  }
+
+  return result;
+}
+
+// ----------------------------------------------------------------------------
+// Undo write-back (proposal unlock). For every event we pushed for this
+// proposal (the event_writebacks ledger), delete it from the member's real
+// calendar, then clear the ledger row so a future re-lock pushes a fresh event.
+// Best-effort per member: a delete failure (token expired, event manually
+// removed) never blocks the unlock, but the ledger row is only cleared once the
+// remote delete is confirmed (or the event is already gone) so we don't orphan
+// a real calendar event. Run with the service role from the Server Action.
+// ----------------------------------------------------------------------------
+export async function removeProposalWriteback(
+  proposalId: string,
+): Promise<{ removed: number; failed: number }> {
+  const admin = createAdminClient();
+  const result = { removed: 0, failed: 0 };
+
+  const { data: ledger } = await admin
+    .from("event_writebacks")
+    .select("user_id, calendar_id, provider_event_id")
+    .eq("proposal_id", proposalId);
+
+  for (const entry of ledger ?? []) {
+    const { data: calendar } = await admin
+      .from("calendars")
+      .select("id, provider")
+      .eq("id", entry.calendar_id)
+      .maybeSingle();
+    const adapter = calendar ? adapterFor(calendar.provider) : null;
+
+    // Calendar gone (disconnected) or unsupported — the event went with it (or
+    // we can't address it). Clear the ledger row and move on.
+    if (!calendar || !adapter) {
+      await admin
+        .from("event_writebacks")
+        .delete()
+        .eq("proposal_id", proposalId)
+        .eq("user_id", entry.user_id);
+      result.removed++;
+      continue;
+    }
+
+    const { data: secret } = await admin
+      .from("calendar_secrets")
+      .select("access_token, refresh_token, token_expires_at")
+      .eq("calendar_id", calendar.id)
+      .maybeSingle();
+    if (!secret) {
+      result.failed++;
+      continue;
+    }
+
+    try {
+      const accessToken = await ensureAccessToken(admin, adapter, calendar.id, secret);
+      await adapter.deleteCalendarEvent(accessToken, entry.provider_event_id);
+      await admin
+        .from("event_writebacks")
+        .delete()
+        .eq("proposal_id", proposalId)
+        .eq("user_id", entry.user_id);
+      result.removed++;
+    } catch {
+      // Leave the ledger row so a later unlock/sync can retry the delete.
+      result.failed++;
     }
   }
 

@@ -250,6 +250,26 @@ vars (+ `NEXT_PUBLIC_ANALYTICS_ENV=production`) on the deploy; (2) a first run/d
 in-app instrumentation fires real data (the test events only prove the credential + transport, not the
 app's own `$pageview`/funnel/error wiring). The weekly analysis loop is ready — see `docs/ANALYTICS.md`.
 
+**Post-launch feedback fixes (2026-06-12, branch `feat/proposal-unlock-and-fixes`).** Five items from
+real user feedback. (1) **Unlock proposals** — new `unlock_proposal` RPC (proposer/admin, `locked→open`,
+clears `final_option`) + `unlockProposal` action that also **removes events written to members'
+calendars** (new `deleteCalendarEvent` on the `CalendarAdapter` + both providers, driven by
+`removeProposalWriteback` walking the `event_writebacks` ledger); manager-only **Unlock** button on
+locked proposals. (2) **Duplicate-notification bug** (~9 "Event locked" in-app + pushes) root-caused:
+`lock_proposal` updated unconditionally + returned void, so every repeat submit re-ran the notify +
+write-back fan-out — now **transition-aware** (`open→locked` only, returns boolean) and `lockProposal`
+only fans out on a real transition; lock/unlock are client components (`lock-controls.tsx`) that disable
+while submitting. (3) **Heavier proposal copy** — lock button is now "Lock for everyone" behind a confirm
+dialog; availability vs. group-decision copy clarified. (4) **OAuth-expired UX** — `invalid_grant` →
+`reauth_required` so the calendar shows "Reconnect needed" + a one-click **Reconnect** button instead of
+raw JSON (the token expires because Google caps Testing-mode refresh tokens at **7 days** — documented in
+`PRE-LAUNCH.md`; fix = publish to Production). (5) `proposal_unlocked` notification kind. **Migration
+`20260612000000_proposal_unlock_and_idempotent_lock` applied to local + hosted PRODUCTION via MCP**;
+`database.types.ts` regenerated. **61 unit + 95 integration (156)** green; `tsc`/`eslint`/`next build`
+green; advisors clean except the documented intentional WARNs (the new `unlock_proposal`/recreated
+`lock_proposal` add the same accepted `security_definer_function_executable` pattern). Full record in
+`docs/HANDOFF.md`.
+
 **Next:** owner-driven pre-launch work (OAuth verification, deploy, confirm the `CONTACT_EMAIL`
 mailbox) in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
 [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md). Verify the live push round-trip against a production

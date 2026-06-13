@@ -44,6 +44,11 @@ intervals), never event titles. Tokens live in `calendar_secrets`
      **`Error 403: access_denied` ("Overlapp has not completed the Google
      verification process")** — that means *add the account as a test user*, NOT
      that you need full Google verification (that's only for public launch).
+     ⚠️ **Testing-mode refresh tokens expire after 7 days** (Google policy). A
+     connected calendar will fail token refresh (`invalid_grant` / "Token has
+     been expired or revoked") about a week in; the Calendars page shows
+     **"Reconnect needed"** + a one-click **Reconnect** button. Publishing the
+     app to Production removes this cap (see `docs/PRE-LAUNCH.md`).
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
    - Application type: **Web application**.
    - **Authorized redirect URIs** — add exactly (no trailing slash):

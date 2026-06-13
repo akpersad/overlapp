@@ -125,6 +125,21 @@ export async function insertCalendarEvent(
   return json.id;
 }
 
+// Delete a previously written-back event (used when a proposal is unlocked).
+// A 404/410 (already gone) is treated as success so unlock stays idempotent.
+export async function deleteCalendarEvent(
+  accessToken: string,
+  providerEventId: string,
+): Promise<void> {
+  const res = await fetch(
+    `${EVENTS_ENDPOINT}/${encodeURIComponent(providerEventId)}`,
+    { method: "DELETE", headers: { authorization: `Bearer ${accessToken}` } },
+  );
+  if (res.ok || res.status === 404 || res.status === 410) return;
+  if (res.status === 403) throw new Error("insufficient_scope");
+  throw new Error(`Microsoft events.delete failed (${res.status}): ${await res.text()}`);
+}
+
 // Pull events via the delta query, following `@odata.nextLink` pagination to the
 // end (Graph only returns the `@odata.deltaLink` cursor on the final page).
 // Incremental when `syncToken` (a prior deltaLink) is set; a full windowed pull

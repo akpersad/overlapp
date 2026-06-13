@@ -169,6 +169,16 @@ export default async function CalendarsPage({
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  {c.sync_state === "revoked" &&
+                    (c.provider === "google" || c.provider === "microsoft") && (
+                      <form
+                        action={c.provider === "google" ? connectGoogle : connectMicrosoft}
+                      >
+                        <button className={`${btnPrimary} !py-1 !text-xs`}>
+                          Reconnect
+                        </button>
+                      </form>
+                    )}
                   <form action={setCalendarWriteback}>
                     <input type="hidden" name="calendar_id" value={c.id} />
                     <input

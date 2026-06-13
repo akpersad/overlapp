@@ -23,6 +23,7 @@ function pushUrl(input: NotifyInput): string {
 type NotificationKind =
   | "proposal_created"
   | "proposal_locked"
+  | "proposal_unlocked"
   | "proposal_cancelled"
   | "proposal_nudge";
 

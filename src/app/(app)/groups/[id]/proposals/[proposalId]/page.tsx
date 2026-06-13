@@ -3,13 +3,10 @@ import { notFound } from "next/navigation";
 
 import { LocalTime } from "@/components/LocalTime";
 import { requireUser } from "@/lib/auth";
-import {
-  cancelProposal,
-  lockProposal,
-  nudgeProposal,
-} from "@/lib/actions/proposals";
+import { cancelProposal, nudgeProposal } from "@/lib/actions/proposals";
 import { createClient } from "@/lib/supabase/server";
-import { btnDanger, btnPrimary, btnSecondary, card } from "@/lib/ui";
+import { btnDanger, btnSecondary, card } from "@/lib/ui";
+import { LockButton, UnlockButton } from "./lock-controls";
 import { RespondForm } from "./respond-form";
 
 type Result = {
@@ -102,9 +99,13 @@ export default async function ProposalPage({
       {/* Respond — members mark availability while the proposal is open. */}
       {isOpen && (
         <section className={card}>
-          <h2 className="mb-3 text-h3 text-ink">
+          <h2 className="mb-1 text-h3 text-ink">
             Your availability
           </h2>
+          <p className="mb-3 text-sm text-ink-muted">
+            Mark which times work for <strong>you</strong>. This only records
+            your own availability — it doesn&apos;t pick the time for the group.
+          </p>
           <RespondForm
             groupId={id}
             proposalId={proposalId}
@@ -120,12 +121,26 @@ export default async function ProposalPage({
 
       {/* Results — overlap tally per option. */}
       <section className={card}>
-        <h2 className="mb-3 text-h3 text-ink">
+        <h2 className="mb-1 text-h3 text-ink">
           Overlap{" "}
           <span className="text-body-sm font-normal text-ink-subtle tabular">
             ({respondedCount}/{totalMembers} responded)
           </span>
         </h2>
+        {isManager && isOpen && (
+          <p className="mb-3 rounded-lg bg-honey-50 px-3 py-2 text-sm text-honey-900">
+            You can manage this proposal. <strong>Lock for everyone</strong>{" "}
+            picks the <strong>final group time</strong> and adds it to opted-in
+            members&apos; calendars — it&apos;s not your personal availability.
+            Only do this once the group has settled. You can unlock it later.
+          </p>
+        )}
+        {!isManager && isOpen && (
+          <p className="mb-3 text-sm text-ink-muted">
+            How everyone&apos;s availability stacks up so far. An organizer locks
+            the final time once the group settles.
+          </p>
+        )}
         <ul className="flex flex-col gap-2">
           {results.map((r) => {
             const isFinal = proposal.final_option === r.option_id;
@@ -161,14 +176,12 @@ export default async function ProposalPage({
                     </span>
                   )}
                   {isManager && isOpen && (
-                    <form action={lockProposal}>
-                      <input type="hidden" name="proposal_id" value={proposalId} />
-                      <input type="hidden" name="option_id" value={r.option_id} />
-                      <input type="hidden" name="group_id" value={id} />
-                      <button className={`${btnPrimary} !py-1 !text-xs`}>
-                        Lock this
-                      </button>
-                    </form>
+                    <LockButton
+                      proposalId={proposalId}
+                      optionId={r.option_id}
+                      groupId={id}
+                      startsAt={r.starts_at}
+                    />
                   )}
                 </div>
               </li>
@@ -178,9 +191,21 @@ export default async function ProposalPage({
       </section>
 
       {isLocked && (
-        <p className="text-sm text-av-5">
-          ✓ Locked. Members who opted in have it on their calendar.
-        </p>
+        <section className={card}>
+          <p className="text-sm text-av-5">
+            ✓ Locked — this is the group&apos;s final time. Members who opted in
+            have it on their calendar.
+          </p>
+          {isManager && (
+            <div className="mt-3 border-t border-border pt-3">
+              <p className="mb-2 text-sm text-ink-muted">
+                Locked the wrong slot, or need the group to revisit? Unlocking
+                reopens it and removes the event from members&apos; calendars.
+              </p>
+              <UnlockButton proposalId={proposalId} groupId={id} />
+            </div>
+          )}
+        </section>
       )}
 
       {/* Manager controls */}

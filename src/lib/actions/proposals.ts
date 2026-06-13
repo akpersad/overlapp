@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/notifications";
-import { writeBackProposal } from "@/lib/calendar/sync";
+import { removeProposalWriteback, writeBackProposal } from "@/lib/calendar/sync";
 import { track } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
 
@@ -138,11 +138,20 @@ export async function lockProposal(formData: FormData): Promise<void> {
   if (!proposalId || !optionId) return;
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("lock_proposal", {
+  const { data: didLock, error } = await supabase.rpc("lock_proposal", {
     p_proposal_id: proposalId,
     p_option_id: optionId,
   });
   if (error) throw new Error(error.message);
+
+  // Only fan out notifications + write-back on a real open→locked transition.
+  // A repeat submit (the lock form re-runs on each click) is now a no-op RPC,
+  // so members no longer get a flood of duplicate "Event locked" notifications.
+  if (!didLock) {
+    revalidatePath(`/groups/${groupId}/proposals/${proposalId}`);
+    revalidatePath(`/groups/${groupId}`);
+    return;
+  }
 
   await track(EVENTS.PROPOSAL_LOCKED, user.id, { group_id: groupId });
 
@@ -173,6 +182,55 @@ export async function lockProposal(formData: FormData): Promise<void> {
   } catch {
     // best-effort
   }
+
+  revalidatePath(`/groups/${groupId}/proposals/${proposalId}`);
+  revalidatePath(`/groups/${groupId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Unlock — proposer/admin reverses a lock back to open (e.g. they locked the
+// wrong slot, or the group needs to revisit). Removes any events we wrote back
+// to members' real calendars so unlocking fully reverses the lock, then
+// notifies the group. Idempotent: a no-op transition skips the fan-out.
+// ---------------------------------------------------------------------------
+export async function unlockProposal(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const proposalId = String(formData.get("proposal_id") ?? "");
+  const groupId = String(formData.get("group_id") ?? "");
+  if (!proposalId) return;
+
+  const supabase = await createClient();
+  const { data: didUnlock, error } = await supabase.rpc("unlock_proposal", {
+    p_proposal_id: proposalId,
+  });
+  if (error) throw new Error(error.message);
+  if (!didUnlock) {
+    revalidatePath(`/groups/${groupId}/proposals/${proposalId}`);
+    revalidatePath(`/groups/${groupId}`);
+    return;
+  }
+
+  // Pull the chosen slot back off members' calendars. Best-effort.
+  try {
+    await removeProposalWriteback(proposalId);
+  } catch {
+    // best-effort
+  }
+
+  const { data: proposal } = await supabase
+    .from("proposals")
+    .select("title")
+    .eq("id", proposalId)
+    .maybeSingle();
+
+  await notifyUsers({
+    userIds: await otherActiveMembers(supabase, groupId, user.id),
+    kind: "proposal_unlocked",
+    title: `Reopened: ${proposal?.title ?? "Proposal"}`,
+    body: "The time is no longer set — mark your availability again.",
+    groupId,
+    proposalId,
+  });
 
   revalidatePath(`/groups/${groupId}/proposals/${proposalId}`);
   revalidatePath(`/groups/${groupId}`);

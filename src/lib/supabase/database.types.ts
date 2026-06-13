@@ -904,7 +904,7 @@ export type Database = {
       is_group_member: { Args: { p_group_id: string }; Returns: boolean }
       lock_proposal: {
         Args: { p_option_id: string; p_proposal_id: string }
-        Returns: undefined
+        Returns: boolean
       }
       my_busy_intervals: {
         Args: { p_from: string; p_to: string }
@@ -938,7 +938,7 @@ export type Database = {
         }[]
       }
       register_invite_signup: {
-        Args: { p_token: string; p_email: string }
+        Args: { p_email: string; p_token: string }
         Returns: undefined
       }
       shares_group_with: { Args: { p_user_id: string }; Returns: boolean }
@@ -953,6 +953,7 @@ export type Database = {
         Args: { p_group_id: string; p_new_owner: string }
         Returns: undefined
       }
+      unlock_proposal: { Args: { p_proposal_id: string }; Returns: boolean }
       upcoming_hangouts: {
         Args: { p_group_id: string; p_to: string }
         Returns: {

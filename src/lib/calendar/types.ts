@@ -71,4 +71,7 @@ export type CalendarAdapter = {
   // Insert an event (write-back). Returns the provider event id. Throws
   // "insufficient_scope" on 403 so the caller can prompt a reconnect.
   insertCalendarEvent(accessToken: string, ev: InsertEventInput): Promise<string>;
+  // Delete a previously written-back event (used when a proposal is unlocked).
+  // Treats an already-gone event (404/410) as success so unlock is idempotent.
+  deleteCalendarEvent(accessToken: string, providerEventId: string): Promise<void>;
 };

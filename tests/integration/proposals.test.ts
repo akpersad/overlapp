@@ -293,6 +293,105 @@ describe("lock_proposal / cancel_proposal — manager-gated", () => {
       .single();
     expect(data?.status).toBe("cancelled");
   });
+
+  // The lock used to UPDATE unconditionally, so a repeat submit re-fired the
+  // "Event locked" notification + write-back (the ~9-notification bug). It now
+  // returns true only on the real open→locked transition.
+  it("lock_proposal returns true once, false on a repeat (idempotent)", async () => {
+    const { owner, group } = await groupWithMembers(0);
+    const proposalId = await createProposal(owner, group.id);
+    const { data: options } = await owner.client
+      .from("proposal_options")
+      .select("id")
+      .eq("proposal_id", proposalId);
+    const optionId = options![0].id;
+
+    const first = await owner.client.rpc("lock_proposal", {
+      p_proposal_id: proposalId,
+      p_option_id: optionId,
+    });
+    expect(first.error).toBeNull();
+    expect(first.data).toBe(true);
+
+    const second = await owner.client.rpc("lock_proposal", {
+      p_proposal_id: proposalId,
+      p_option_id: optionId,
+    });
+    expect(second.error).toBeNull();
+    expect(second.data).toBe(false); // already locked — no re-notify
+  });
+});
+
+describe("unlock_proposal — manager-gated, reversible", () => {
+  beforeEach(resetData);
+
+  async function lockedProposal(memberCount = 1) {
+    const ctx = await groupWithMembers(memberCount);
+    const proposalId = await createProposal(ctx.owner, ctx.group.id);
+    const { data: options } = await ctx.owner.client
+      .from("proposal_options")
+      .select("id")
+      .eq("proposal_id", proposalId);
+    await ctx.owner.client.rpc("lock_proposal", {
+      p_proposal_id: proposalId,
+      p_option_id: options![0].id,
+    });
+    return { ...ctx, proposalId, optionId: options![0].id };
+  }
+
+  it("reopens a locked proposal and clears the chosen option", async () => {
+    const { owner, proposalId } = await lockedProposal(0);
+    const { data, error } = await owner.client.rpc("unlock_proposal", {
+      p_proposal_id: proposalId,
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(true);
+
+    const { data: reopened } = await owner.client
+      .from("proposals")
+      .select("status, final_option")
+      .eq("id", proposalId)
+      .single();
+    expect(reopened?.status).toBe("open");
+    expect(reopened?.final_option).toBeNull();
+  });
+
+  it("returns false when the proposal isn't locked (idempotent)", async () => {
+    const { owner, group } = await groupWithMembers(0);
+    const proposalId = await createProposal(owner, group.id); // still open
+    const { data, error } = await owner.client.rpc("unlock_proposal", {
+      p_proposal_id: proposalId,
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(false);
+  });
+
+  it("blocks a non-manager member from unlocking", async () => {
+    const { members, proposalId } = await lockedProposal(1);
+    const { error } = await members[0].client.rpc("unlock_proposal", {
+      p_proposal_id: proposalId,
+    });
+    expect(error).not.toBeNull();
+  });
+
+  it("lets an admin unlock someone else's proposal", async () => {
+    const { owner, group, members } = await groupWithMembers(1);
+    const proposalId = await createProposal(members[0], group.id);
+    const { data: options } = await owner.client
+      .from("proposal_options")
+      .select("id")
+      .eq("proposal_id", proposalId);
+    await members[0].client.rpc("lock_proposal", {
+      p_proposal_id: proposalId,
+      p_option_id: options![0].id,
+    });
+
+    const { data, error } = await owner.client.rpc("unlock_proposal", {
+      p_proposal_id: proposalId,
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(true);
+  });
 });
 
 describe("group_heatmap — quorum verdict (Phase 3)", () => {
