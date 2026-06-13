@@ -121,7 +121,15 @@ export async function refreshAccessToken(refreshToken: string): Promise<GoogleTo
     }),
   });
   if (!res.ok) {
-    throw new Error(`Google token refresh failed (${res.status}): ${await res.text()}`);
+    const body = await res.text();
+    // invalid_grant = the refresh token was revoked or expired (Google expires
+    // refresh tokens after 7 days while the OAuth app is in "Testing"). Surface
+    // it as reauth_required so the worker marks the calendar "reconnect needed"
+    // with a friendly message instead of leaking the raw error JSON to the UI.
+    if (res.status === 400 && body.includes("invalid_grant")) {
+      throw new Error("reauth_required");
+    }
+    throw new Error(`Google token refresh failed (${res.status}): ${body}`);
   }
   const json = (await res.json()) as {
     access_token: string;

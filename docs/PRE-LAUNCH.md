@@ -6,6 +6,45 @@
 > private test with Google "Test users"; these gate opening the doors to the
 > public.
 
+## ⚠️ Live status (2026-06-13) — what's done, what's still open
+
+The app is **deployed and live** at `https://overlapp-psi.vercel.app` (Vercel free
+Hobby, no custom domain yet). State of each launch item, verified against the live
+project this date:
+
+**Done / verified:**
+- ✅ Supabase **Auth → URL Configuration**: Site URL = `https://overlapp-psi.vercel.app/`,
+  redirect allow-list = `https://overlapp-psi.vercel.app/**` (covers `/auth/confirm`,
+  `/invite/[token]`, `/reset-password`).
+- ✅ **`NEXT_PUBLIC_SITE_URL`** set on the Vercel deploy (drives OAuth `redirect_uri` +
+  link-preview `metadataBase`/`og:image`).
+- ✅ **Google OAuth client** redirect URIs + JS origin include the prod callback
+  (`https://overlapp-psi.vercel.app/api/calendars/google/callback`, origin
+  `https://overlapp-psi.vercel.app`) alongside localhost.
+- ✅ **Analytics env vars** (PostHog + Sentry `NEXT_PUBLIC_*`) set on the deploy.
+
+**Accepted / won't-do on free tier:**
+- ⛔ **Leaked-password protection** is a Supabase **Pro-and-above** feature — staying on
+  free tier, so it stays off. The `auth_leaked_password_protection` advisor WARN is
+  therefore **accepted, not a gap**. Free mitigation: set a **minimum password strength**
+  in Auth settings (the dropdown next to the toggle) — still worth doing.
+
+**🔴 Open blockers — all trace back to one missing thing: a registered custom domain.**
+- **`overlapp.app` is not registered** (no NS/A/TXT in DNS as of this date). Consequences:
+  - `privacy@overlapp.app` (legal contact on `/privacy` + `/terms`) and
+    `admin@overlapp.app` (VAPID subject) are **dead mailboxes** — nobody can reach the
+    contact address. Push still works (VAPID only needs valid-format mailto).
+  - **Google OAuth verification is blocked**: `*.vercel.app` is owned by Vercel and can't
+    be verified in Search Console, so the consent screen can't leave "unverified."
+    (✅ Already **published to Production**, so the 7-day refresh-token cap is gone —
+    verification, which removes the warning screen + 100-user cap, is what still waits on a
+    domain.)
+  - **Email DMARC** can't be set without a DNS zone for the sending domain — confirm which
+    domain Resend actually sends prod auth mail from and check DMARC there (see below).
+- **Action:** register a real custom domain (e.g. `overlapp.app` if available), point it at
+  Vercel, and reuse it for: custom domain + HTTPS, working `privacy@`/`admin@` mailboxes,
+  email DMARC, and Google OAuth verification. One purchase unblocks four items.
+
 ## Legal pages — Privacy Policy & Terms of Service  ✅ built (Phase 5)
 
 > Built in Phase 5: `/privacy` + `/terms` are live (route group `src/app/(legal)/`), added to the
@@ -38,6 +77,13 @@
 
 ## Google OAuth — going public
 
+> **Status (2026-06-13):** ✅ **Published to Production** — the 7-day refresh-token cap is
+> gone (tokens now last until revoked / 6mo idle). Prod redirect URI + JS origin registered.
+> **Remaining:** full **verification** (removes the "unverified app" warning + 100-user cap)
+> is blocked on a verifiable **custom domain** (`*.vercel.app` is unverifiable) — deferred
+> with the domain purchase. Until then, up to ~100 users click through the unverified warning;
+> calendar sync otherwise works normally.
+
 - Move the OAuth app from **Testing → Production** (Google Cloud → Audience).
 - Provide the privacy policy + terms URLs and a verified **app domain**.
 - `calendar.readonly` is a **sensitive** scope → Google verification (brand +
@@ -45,8 +91,22 @@
   test-user cap. Free, but can take time — start early.
 - **Interim (free, zero-friction):** stay in "Testing" and add each user under
   **Test users** (cap 100). Fine for a small private launch.
+- ⚠️ **Refresh tokens expire after 7 days while the app is in "Testing".** This is
+  a Google policy, not a bug — a connected Google calendar will start failing
+  token refresh (`invalid_grant` / "Token has been expired or revoked") about a
+  week after connecting, and the user must reconnect. **Publishing the app to
+  Production removes this 7-day cap** (refresh tokens then last until the user
+  revokes access or 6 months of inactivity). Until then, expect periodic
+  reconnects. The app now handles this gracefully: an expired grant flips the
+  calendar to "Reconnect needed" with a one-click **Reconnect** button on
+  `/calendars` instead of leaking the raw error.
 
 ## Deployment (Vercel — free Hobby tier)
+
+> **Status (2026-06-13):** deployed at `https://overlapp-psi.vercel.app`; core env vars
+> + prod redirect URIs done (see Live status). Remaining: confirm the cron shows under
+> Project → Settings → **Cron Jobs** and has fired (Logs), confirm **`CRON_SECRET`** is
+> set, and add a **custom domain** (the blocker above).
 
 - Set env vars in Vercel → Settings → Environment Variables: `GOOGLE_CLIENT_ID`,
   `GOOGLE_CLIENT_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`,
@@ -95,7 +155,11 @@ paste an invite link into iMessage to confirm the preview card renders.
 ## Email deliverability (Resend free tier)
 
 - Land the **DMARC** record for the sending domain (was in progress — verify it's
-  green) so verification / reset emails don't spam-folder.
+  green) so verification / reset emails don't spam-folder. **⚠️ 2026-06-13:**
+  `overlapp.app` has no DNS zone, so DMARC can't live there yet. Confirm in
+  **Resend → Domains** which domain prod auth mail actually sends from, then check
+  `dig +short TXT _dmarc.<that-domain>` (or mxtoolbox.com/dmarc.aspx). Blocked on the
+  custom-domain registration above if the intended sender is `overlapp.app`.
 - Confirm Supabase Auth → SMTP points at Resend in production, and that signup
   email confirmation is **on** for prod (local has it off).
 
@@ -104,8 +168,9 @@ paste an invite link into iMessage to confirm the preview card renders.
 - Review `get_advisors` (security + performance) once more; confirm only the
   intentional items (`security_definer` WARNs, `calendar_secrets`
   RLS-no-policy INFO).
-- **Enable leaked-password protection** (Supabase → Auth → Policies) — the
-  standing `auth_leaked_password_protection` advisor WARN. One toggle.
+- ~~**Enable leaked-password protection**~~ — ⛔ **Pro-and-above only; accepted off on
+  free tier.** The `auth_leaked_password_protection` advisor WARN is expected, not a gap.
+  Free mitigation: set a minimum **password strength** in Auth settings.
 - Decide on MCP write-mode against prod once real users exist (consider switching
   to read-only, or a separate project/branch). See `HANDOFF.md` open reminders.
 - (Post-launch hardening, tracked separately: encrypt OAuth tokens at rest with

@@ -1,7 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildAuthUrl, googleConfigured, redirectUri } from "@/lib/google/oauth";
-import { mapGoogleEvent, type GoogleEvent } from "@/lib/google/calendar";
+import {
+  buildAuthUrl,
+  googleConfigured,
+  redirectUri,
+  refreshAccessToken,
+} from "@/lib/google/oauth";
+import {
+  deleteCalendarEvent,
+  mapGoogleEvent,
+  type GoogleEvent,
+} from "@/lib/google/calendar";
+
+function mockFetch(status: number, body = "") {
+  return vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(new Response(body, { status }));
+}
 
 describe("google oauth url", () => {
   it("reports configured when client id + secret are present", () => {
@@ -97,5 +112,50 @@ describe("mapGoogleEvent", () => {
         end: { dateTime: "2026-07-01T10:00:00Z" },
       }),
     ).toBeNull();
+  });
+});
+
+describe("refreshAccessToken — expired/revoked grant", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("maps invalid_grant (400) to reauth_required, not the raw JSON", async () => {
+    mockFetch(
+      400,
+      JSON.stringify({
+        error: "invalid_grant",
+        error_description: "Token has been expired or revoked.",
+      }),
+    );
+    await expect(refreshAccessToken("dead-token")).rejects.toThrow(
+      "reauth_required",
+    );
+  });
+
+  it("surfaces other refresh failures with their status", async () => {
+    mockFetch(500, "boom");
+    await expect(refreshAccessToken("tok")).rejects.toThrow(
+      /Google token refresh failed \(500\)/,
+    );
+  });
+});
+
+describe("deleteCalendarEvent — idempotent unlock", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("treats an already-gone event (404) as success", async () => {
+    mockFetch(404);
+    await expect(deleteCalendarEvent("tok", "evt")).resolves.toBeUndefined();
+  });
+
+  it("succeeds on 200", async () => {
+    mockFetch(200);
+    await expect(deleteCalendarEvent("tok", "evt")).resolves.toBeUndefined();
+  });
+
+  it("maps 403 to insufficient_scope", async () => {
+    mockFetch(403);
+    await expect(deleteCalendarEvent("tok", "evt")).rejects.toThrow(
+      "insufficient_scope",
+    );
   });
 });

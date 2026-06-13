@@ -3,6 +3,42 @@
 > Created 2026-06-03. Purpose: let a fresh Claude Code session resume exactly where the
 > previous one left off. Read this first, then `CLAUDE.md` → `docs/SPEC.md` → `docs/DATA-MODEL.md`.
 
+## 2026-06-12 — proposal unlock + post-launch feedback fixes (branch `feat/proposal-unlock-and-fixes`)
+
+Five items off real user feedback. **Migration `20260612000000_proposal_unlock_and_idempotent_lock`
+applied to local + hosted PRODUCTION via MCP.** Gate: **61 unit + 95 integration (156)** green,
+`tsc`/`eslint`/`next build` green. Advisors clean except the documented intentional items (the new
+`unlock_proposal` + recreated `lock_proposal` add the same accepted `security_definer_function_executable`
+WARN; calendar_secrets INFO; auth_leaked_password WARN). e2e/visual + the live push/write-back
+round-trip remain a manual check (deploy-only).
+
+- **Unlock proposals (admins/proposer).** New `unlock_proposal(p_proposal_id)` RPC (proposer-or-admin
+  gate, mirrors lock): `locked → open`, `final_option` cleared, returns whether it transitioned. New
+  `unlockProposal` action also **removes events already written to members' calendars** — added
+  `deleteCalendarEvent` to the `CalendarAdapter` contract + both google/microsoft `calendar.ts`
+  (404/410 = success → idempotent), driven by a new `removeProposalWriteback` in `calendar/sync.ts`
+  that walks the `event_writebacks` ledger and only clears a row once the remote delete confirms.
+  UI: an **Unlock proposal** button on locked proposals (manager-only, confirm dialog).
+- **Duplicate-notification bug (~9 "Event locked" in-app + pushes) — root-caused.** `lock_proposal`
+  used to UPDATE unconditionally + return void, so every repeat submit of the lock form re-ran the
+  whole notify + write-back fan-out. It's now **transition-aware**: only acts on `open → locked`,
+  returns a boolean, and `lockProposal` only notifies/writes-back on a real transition. The lock/unlock
+  buttons are now client components in `lock-controls.tsx` that disable while submitting
+  (`useFormStatus`). `database.types.ts` regenerated (lock_proposal now `Returns: boolean`,
+  unlock_proposal added).
+- **Heavy-handed proposal copy** (a user locked the group time thinking it was their own availability):
+  the lock button is now **"Lock for everyone"** behind a confirm dialog ("decides the event for
+  everyone… not your personal availability"); the "Your availability" + Overlap sections gained
+  explicit copy separating personal RSVP from the group decision.
+- **OAuth-expired UX + the "why did it expire?" answer.** `invalid_grant` in google/microsoft
+  `refreshAccessToken` now maps to `reauth_required`, so the calendar flips to "Reconnect needed"
+  with a one-click **Reconnect** button on `/calendars` instead of leaking raw JSON; a write-back
+  reauth/scope failure flips `sync_state` to `revoked` immediately. **Why it expired:** Google
+  expires refresh tokens after **7 days** while the OAuth app is in "Testing" — documented in
+  `PRE-LAUNCH.md` (fix = publish to Production). New unit tests cover the invalid_grant mapping +
+  delete idempotency; new integration tests cover unlock perms/reversal + lock idempotency.
+- **`proposal_unlocked` notification kind** added (text column, no constraint → no migration).
+
 ## 2026-06-06 — analytics + error tracking (branch `analytics-and-error-handling`)
 
 Added product analytics + error tracking, chosen so a **Claude Code session can query the data

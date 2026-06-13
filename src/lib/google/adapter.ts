@@ -2,7 +2,11 @@ import "server-only";
 
 import type { CalendarAdapter } from "@/lib/calendar/types";
 import { fetchAccountEmail, refreshAccessToken } from "./oauth";
-import { fetchCalendarEvents, insertCalendarEvent } from "./calendar";
+import {
+  deleteCalendarEvent,
+  fetchCalendarEvents,
+  insertCalendarEvent,
+} from "./calendar";
 
 // The Google seam for the provider-agnostic orchestrator (calendar/sync.ts).
 // All provider I/O is delegated to the existing oauth.ts + calendar.ts helpers.
@@ -13,4 +17,5 @@ export const googleAdapter: CalendarAdapter = {
   fetchAccountEmail,
   fetchCalendarEvents,
   insertCalendarEvent,
+  deleteCalendarEvent,
 };
