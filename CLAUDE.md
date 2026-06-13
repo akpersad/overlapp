@@ -270,7 +270,19 @@ green; advisors clean except the documented intentional WARNs (the new `unlock_p
 `lock_proposal` add the same accepted `security_definer_function_executable` pattern). Full record in
 `docs/HANDOFF.md`.
 
-**Next:** owner-driven pre-launch work (OAuth verification, deploy, confirm the `CONTACT_EMAIL`
-mailbox) in [`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md); backlog in
-[`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md). Verify the live push round-trip against a production
-build + installed PWA once deployed (it can't be exercised by `next dev` or the e2e suite).
+**LIVE as of 2026-06-13** at `https://overlapp-psi.vercel.app` (Vercel free Hobby, **no custom
+domain**). Verified done on the deploy: Supabase Auth URL config, `NEXT_PUBLIC_SITE_URL`, Google
+prod redirect URI + JS origin, PostHog/Sentry env vars. Leaked-password protection is **accepted
+off** (Supabase Pro-only — staying free tier). Full live-status snapshot in
+[`docs/PRE-LAUNCH.md`](docs/PRE-LAUNCH.md) "Live status (2026-06-13)".
+
+**Custom-domain blocker (deferred — owner not buying a domain for a while, see
+[[no-custom-domain-yet]]):** `overlapp.app` is unregistered, so `privacy@`/`admin@` are dead
+mailboxes, email DMARC can't be set, and Google OAuth **verification** is blocked
+(`*.vercel.app` is unverifiable). These all wait on a domain purchase. Independent of the domain:
+Google OAuth can still be **published Testing→Production** to remove the 7-day refresh-token cap.
+
+**Next (no-domain-needed):** publish Google OAuth to Production; verify the Vercel cron fired +
+`CRON_SECRET` is set; confirm Resend's actual sending domain + its DMARC; verify the live push
+round-trip against a production build + installed PWA (can't be exercised by `next dev`/e2e).
+Backlog in [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
