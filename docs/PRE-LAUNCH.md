@@ -35,9 +35,10 @@ project this date:
     `admin@overlapp.app` (VAPID subject) are **dead mailboxes** — nobody can reach the
     contact address. Push still works (VAPID only needs valid-format mailto).
   - **Google OAuth verification is blocked**: `*.vercel.app` is owned by Vercel and can't
-    be verified in Search Console, so the consent screen can't leave "unverified." Publish
-    to Production still works and **removes the 7-day refresh-token cap** (do that now —
-    see below) — verification (removes the warning screen + 100-user cap) waits on a domain.
+    be verified in Search Console, so the consent screen can't leave "unverified."
+    (✅ Already **published to Production**, so the 7-day refresh-token cap is gone —
+    verification, which removes the warning screen + 100-user cap, is what still waits on a
+    domain.)
   - **Email DMARC** can't be set without a DNS zone for the sending domain — confirm which
     domain Resend actually sends prod auth mail from and check DMARC there (see below).
 - **Action:** register a real custom domain (e.g. `overlapp.app` if available), point it at
@@ -76,17 +77,12 @@ project this date:
 
 ## Google OAuth — going public
 
-> **Status (2026-06-13):** prod redirect URI + JS origin are registered (see Live status
-> above). Still **in Testing** → **publish to Production now** to kill the 7-day
-> refresh-token expiry (the actual user pain); full verification is blocked on a custom
-> domain (`*.vercel.app` is unverifiable). Steps:
-> 1. Google Cloud Console → project → **APIs & Services → OAuth consent screen** (newer
->    UI: **Google Auth Platform → Audience**).
-> 2. **Publishing status: Testing** → **Publish app** → confirm. Status → **In production**.
->    This alone removes the 7-day cap (refresh tokens then last until revoked / 6mo idle).
-> 3. Verification (removes the "unverified app" warning + 100-user cap) needs a verifiable
->    **custom domain** — defer until the domain lands. Up to ~100 users click through the
->    warning meanwhile.
+> **Status (2026-06-13):** ✅ **Published to Production** — the 7-day refresh-token cap is
+> gone (tokens now last until revoked / 6mo idle). Prod redirect URI + JS origin registered.
+> **Remaining:** full **verification** (removes the "unverified app" warning + 100-user cap)
+> is blocked on a verifiable **custom domain** (`*.vercel.app` is unverifiable) — deferred
+> with the domain purchase. Until then, up to ~100 users click through the unverified warning;
+> calendar sync otherwise works normally.
 
 - Move the OAuth app from **Testing → Production** (Google Cloud → Audience).
 - Provide the privacy policy + terms URLs and a verified **app domain**.

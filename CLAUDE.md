@@ -279,10 +279,10 @@ off** (Supabase Pro-only — staying free tier). Full live-status snapshot in
 **Custom-domain blocker (deferred — owner not buying a domain for a while, see
 [[no-custom-domain-yet]]):** `overlapp.app` is unregistered, so `privacy@`/`admin@` are dead
 mailboxes, email DMARC can't be set, and Google OAuth **verification** is blocked
-(`*.vercel.app` is unverifiable). These all wait on a domain purchase. Independent of the domain:
-Google OAuth can still be **published Testing→Production** to remove the 7-day refresh-token cap.
+(`*.vercel.app` is unverifiable). These all wait on a domain purchase. Google OAuth is ✅ **published to Production** (2026-06-13), so the 7-day refresh-token cap is
+gone; only verification (warning screen + 100-user cap) still waits on the domain.
 
-**Next (no-domain-needed):** publish Google OAuth to Production; verify the Vercel cron fired +
-`CRON_SECRET` is set; confirm Resend's actual sending domain + its DMARC; verify the live push
-round-trip against a production build + installed PWA (can't be exercised by `next dev`/e2e).
+**Next (no-domain-needed):** verify the Vercel cron fired + `CRON_SECRET` is set; confirm
+Resend's actual sending domain + its DMARC; verify the live push round-trip against a production
+build + installed PWA (can't be exercised by `next dev`/e2e).
 Backlog in [`docs/POST-LAUNCH.md`](docs/POST-LAUNCH.md).
